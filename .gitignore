@@ -36,3 +36,12 @@ instance/
 
 # PyCharm
 .idea/
+
+# VS Code
+.vscode/
+
+# MacOS
+.DS_Store
+
+# System
+Thumbs.db
