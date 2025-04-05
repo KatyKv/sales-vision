@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Бизнес-аналитика - Загрузка CSV</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            color: #333;
+        }
+        h1 {
+            color: #2c3e50;
+            text-align: center;
+        }
+        .upload-container {
+            background: #f9f9f9;
+            border: 2px dashed #3498db;
+            border-radius: 5px;
+            padding: 30px;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .btn {
+            background: #3498db;
+            color: white;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        .btn:hover {
+            background: #2980b9;
+        }
+        #file-info {
+            margin-top: 10px;
+            font-style: italic;
+        }
+        .result {
+            margin-top: 30px;
+            padding: 15px;
+            border-radius: 5px;
+            display: none;
+        }
+        .success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+        .supported-columns {
+            margin-top: 30px;
+            font-size: 0.9em;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <h1>Анализ бизнес-данных</h1>
+
+    <div class="upload-container">
+        <h2>Загрузите CSV-файл</h2>
+        <form id="uploadForm" enctype="multipart/form-data">
+            <input type="file" id="csvFile" name="file" accept=".csv" required>
+            <button type="submit" class="btn">Анализировать</button>
+            <div id="file-info"></div>
+        </form>
+    </div>
+
+    <div id="resultContainer" class="result">
+        <h2>Результат обработки</h2>
+        <div id="message"></div>
+        <div id="dataPreview"></div>
+        <a id="downloadLink" href="#" style="display: none;">Скачать обработанный файл</a>
+    </div>
+
+    <div class="supported-columns">
+        <h3>Поддерживаемые названия столбцов:</h3>
+        <p><strong>Название товара:</strong> имя, название, товар, продукт, brand, product, name...</p>
+        <p><strong>Цена:</strong> цена, стоимость, сумма, price, cost, amount...</p>
+        <p><strong>Количество:</strong> количество, кол-во, объем, quantity, qty, stock...</p>
+        <p><strong>Дата:</strong> дата, date, дата продажи, sale date...</p>
+        <p><strong>Регион:</strong> регион, область, город, region, area, city...</p>
+    </div>
+
+    <script>
+        document.getElementById('csvFile').addEventListener('change', function(e) {
+            const fileInfo = document.getElementById('file-info');
+            if (this.files.length > 0) {
+                fileInfo.textContent = `Выбран файл: ${this.files[0].name}`;
+            } else {
+                fileInfo.textContent = '';
+            }
+        });
+
+        document.getElementById('uploadForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+
+            const fileInput = document.getElementById('csvFile');
+            const resultContainer = document.getElementById('resultContainer');
+            const messageDiv = document.getElementById('message');
+            const dataPreview = document.getElementById('dataPreview');
+            const downloadLink = document.getElementById('downloadLink');
+
+            if (!fileInput.files.length) {
+                showResult('error', 'Пожалуйста, выберите файл');
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('file', fileInput.files[0]);
+
+            fetch('/upload', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    showResult('success', data.message);
+
+                    // Показываем информацию о файле
+                    const info = `
+                        <p><strong>Исходный файл:</strong> ${data.original_filename}</p>
+                        <p><strong>Обработанный файл:</strong> ${data.saved_as}</p>
+                        <p><strong>Обнаруженные колонки:</strong> ${data.columns.join(', ')}</p>
+                    `;
+                    messageDiv.innerHTML += info;
+
+                    // Ссылка для скачивания (в реальном приложении нужно реализовать endpoint)
+                    downloadLink.style.display = 'block';
+                    downloadLink.href = `/download/${data.saved_as}`;
+                    downloadLink.textContent = `Скачать ${data.saved_as}`;
+
+                } else {
+                    showResult('error', data.message);
+                }
+            })
+            .catch(error => {
+                showResult('error', 'Ошибка при загрузке файла: ' + error.message);
+            });
+        });
+
+        function showResult(type, message) {
+            const resultContainer = document.getElementById('resultContainer');
+            const messageDiv = document.getElementById('message');
+
+            resultContainer.className = 'result ' + type;
+            messageDiv.innerHTML = `<p>${message}</p>`;
+            resultContainer.style.display = 'block';
+        }
+    </script>
+</body>
+</html>
