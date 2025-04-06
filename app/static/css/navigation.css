@@ -1,0 +1,13 @@
+.navbar-nav {
+    justify-content: space-between; /* Равномерное распределение элементов */
+    align-items: center; /* Выравнивание по вертикали */
+    width: 100%; /* Занимает всю ширину контейнера */
+}
+
+button.btn-secondary {
+    margin-left: auto; /* Сдвигает кнопку "Вход" вправо */
+}
+
+.dropdown-menu {
+    text-align: left; /* Убедитесь, что текст внутри выпадающих списков правильно выровнен */
+}
