@@ -1,6 +1,7 @@
-import os
-import csv
 import chardet
+import csv
+import os
+
 from io import StringIO
 from werkzeug.utils import secure_filename
 
