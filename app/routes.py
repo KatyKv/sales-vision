@@ -1,23 +1,23 @@
 from flask import render_template, request, jsonify, send_from_directory
 from .data_loader import process_csv
-from . import app  # Импорт созданного в __init__.py приложения
+from flask import Blueprint, current_app
 
+# Создаем Blueprint вместо прямого использования app
+main_bp = Blueprint("main", __name__)
 
-@app.route('/')
+@main_bp.route('/')
 def index():
     return render_template('index.html')
 
-
-@app.route('/upload', methods=['POST'])
+@main_bp.route('/upload', methods=['POST'])
 def upload():
     if 'file' not in request.files:
         return jsonify({'status': 'error', 'message': 'Файл не найден'})
 
     file = request.files['file']
-    result = process_csv(file, app.config['UPLOAD_FOLDER'])
+    result = process_csv(file, current_app.config['UPLOAD_FOLDER'])  # Используем current_app
     return jsonify(result)
 
-
-@app.route('/download/<filename>')
+@main_bp.route('/download/<filename>')
 def download(filename):
-    return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
+    return send_from_directory(current_app.config['UPLOAD_FOLDER'], filename)

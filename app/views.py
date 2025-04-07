@@ -1,5 +1,5 @@
 from flask import request, jsonify, current_app
-from app.data_processing import process_csv
+from app.data_loader import process_csv
 
 
 def upload_file():
