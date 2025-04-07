@@ -5,5 +5,23 @@
 {% endblock %}
 
 {% block content %}
-    <h1>здесь будет форма загрузки csv файла</h1>
+    <h2>Загрузка csv файла</h2>
+    <form id="upload-form"
+          hx-encoding="multipart/form-data"
+          hx-post="/upload"
+          hx-target="#upload-status"
+          hx-on="htmx:xhr:progress updateProgress(event)">
+        <input type="file" name="file" />
+        <input type="submit" value="Загрузить" />
+    </form>
+    <div id="upload-status"></div>
+    <progress id="upload-progress" value="0" max="100"></progress>
+
+    <script>
+        function updateProgress(event) {
+            const progress = document.getElementById('upload-progress');
+            progress.value = event.detail.loaded / event.detail.total * 100;
+        }
+    </script>
+
 {% endblock %}
