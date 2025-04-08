@@ -7,19 +7,14 @@
 {% block content %}
 <div class="container mt-5">
     <h2>Загрузка CSV файла</h2>
-    <form id="upload-form"
-          hx-encoding="multipart/form-data"
-          hx-post="/upload"
-          hx-target="#upload-status"
-          hx-on="htmx:xhr:progress updateProgress(event)"
-          class="mb-4">
-        <div class="form-group">
-            <label for="file" class="form-label">Выберите CSV файл</label>
-            <input type="file" name="file" class="form-control" id="file" accept=".csv" required />
-        </div>
-        <p></p>
-        <button type="submit" class="btn btn-primary">Загрузить</button>
-    </form>
+    <form id="upload-form" method="POST" enctype="multipart/form-data" action="/upload" class="mb-4">
+    <div class="form-group">
+        <label for="csvFile" class="form-label">Выберите CSV файл</label>
+        <input type="file" id="csvFile" name="file" accept=".csv" required>
+    </div>
+    <p></p>
+    <button type="submit" class="btn btn-primary">Загрузить</button>
+</form>
 
     <div id="upload-status" class="mb-2"></div>
     <progress id="upload-progress" value="0" max="100" class="progress mt-2" style="width: 100%;"></progress>
