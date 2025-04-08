@@ -1,12 +1,33 @@
 import pandas as pd
+import re
 
+def check_date(val):
+    """Функция обработки даты в YYYY-MM: поддержка YYYY-MM и полной даты"""
+    val = str(val).strip()
+    # Если строка уже в формате YYYY-MM
+    if re.match(r'^\d{4}-\d{2}$', val):
+        return pd.Period(val).to_timestamp()
+    else:
+        try:
+            # Попробуем преобразовать в дату и перевести в формат Period
+            return pd.to_datetime(val, errors='coerce').to_period('M').to_timestamp()
+        except Exception:
+            return pd.NaT  # если не получилось — NaT
 
 def load_data(filepath):
     """Загрузка данных из CSV-файла."""
-    df = pd.read_csv(filepath, parse_dates=['date'])
+    df = pd.read_csv(filepath)
+    numeric_columns = ['price', 'quantity']
+    for col in numeric_columns:
+        df[col] = pd.to_numeric(df[col], errors='coerce')
+
     if 'revenue' not in df.columns:
         df['revenue'] = df['quantity'] * df['price']
-    df['ym'] = df['date'].dt.to_period('M').apply(lambda x: x.to_timestamp())
+    else:
+        df['revenue'] = pd.to_numeric(df['revenue'], errors='coerce')
+    df['date'] = pd.to_datetime(df['date'], errors='coerce')
+    df['ym'] = df['date'].apply(check_date)
+
     return df
 
 
@@ -33,7 +54,7 @@ def sales_by_month(df):
 
 def top_products(df, by='quantity', top_n=10):
     """ТОП товаров по количеству продаж или выручке."""
-    return df.groupby('product_name').agg(
+    return df.groupby('name').agg(
         {'quantity': 'sum', 'revenue': 'sum'}
         ).sort_values(by, ascending=False).head(top_n)
 

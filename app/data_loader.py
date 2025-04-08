@@ -18,9 +18,13 @@ COLUMN_NAMES = {
 
         # Английские варианты
         'name', 'product', 'item', 'goods', 'article', 'sku', 'model',
-        'brand', 'title', 'description', 'product name', 'item name',
-        'product title', 'product description', 'product code', 'stock code',
-        'item code', 'product group', 'category', 'type', 'series', 'line'
+        'brand', 'title', 'description', 'product name', 'product_name',
+        'item name', 'item_name', 'itemname', 'product title', 'product_title',
+        'producttitle', 'product description', 'product_description',
+        'productdescription', 'product code', 'product_code', 'productcode',
+        'stock code', 'stock_code', 'stockcode', 'item code', 'item_code',
+        'itemcode', 'product group', 'product_group', 'productgroup',
+        'category', 'type', 'series', 'line'
     ]},
 
     # Для цены
@@ -33,7 +37,7 @@ COLUMN_NAMES = {
 
         # Английские варианты
         'price', 'cost', 'amount', 'retail price', 'wholesale price',
-        'unit price', 'sale price', 'purchase price', 'list price',
+        'unit price', 'unitprice', 'sale price', 'purchase price', 'list price',
         'market price', 'msrp', 'recommended price', 'final price',
         'item price', 'product price', 'price per unit'
     ]},
@@ -176,7 +180,15 @@ def process_csv(file, upload_folder=DEFAULT_UPLOAD_FOLDER):
         raw_data = file.stream.read()
         encoding = chardet.detect(raw_data)['encoding']
         file_content = raw_data.decode(encoding, errors='replace')
-        csv_data = list(csv.DictReader(StringIO(file_content)))
+
+        # Автоопределение разделителя
+        sample = file_content[:1024]  # берём кусок для анализа
+        sniffer = csv.Sniffer()
+        try:
+            dialect = sniffer.sniff(sample, delimiters=";,|\t")
+        except csv.Error:
+            dialect = csv.get_dialect('excel')  # fallback на стандартный
+        csv_data = list(csv.DictReader(StringIO(file_content), dialect=dialect))
 
         if not csv_data:
             return {'status': 'error', 'message': 'Файл пуст или не содержит данных'}
