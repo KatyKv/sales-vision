@@ -1,6 +1,5 @@
-from flask import render_template, request, jsonify, send_from_directory
+from flask import Blueprint, render_template, request, jsonify, send_from_directory, current_app
 from .data_loader import process_csv
-from flask import Blueprint, current_app
 
 # Создаем Blueprint вместо прямого использования app
 main_bp = Blueprint("main", __name__)

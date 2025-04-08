@@ -62,7 +62,8 @@ COLUMN_NAMES = {
         'date', 'sale date', 'purchase date', 'creation date',
         'update date', 'transaction date', 'order date',
         'delivery date', 'fulfillment date', 'time', 'period',
-        'year', 'month', 'day', 'datetime', 'timestamp'
+        'year', 'month', 'day', 'datetime', 'timestamp',
+        'invoice_date', 'invoicedate'
     ]},
 
     # Для региона/локации
@@ -77,7 +78,7 @@ COLUMN_NAMES = {
         'region', 'area', 'city', 'country', 'territory',
         'zone', 'district', 'location', 'place', 'address',
         'branch', 'store', 'shop', 'outlet', 'warehouse',
-        'center', 'division', 'department'
+        'center', 'division', 'department', 'shopping_mall'
     ]},
 
     # Дополнительные часто используемые поля
