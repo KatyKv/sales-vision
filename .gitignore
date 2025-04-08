@@ -45,3 +45,8 @@ instance/
 
 # System
 Thumbs.db
+
+# Temporary Files
+*~
+*.bak
+*.tmp
