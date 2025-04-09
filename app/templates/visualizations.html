@@ -6,11 +6,27 @@
 </head>
 <body>
     <h1>Визуализация продаж</h1>
-        {% for title, graph in graphs.items() %}
-            <h2>{{ title }}</h2>
-            <div class="graph">
-                {{ graph | safe }}
+    <div class="container">
+        {% for viz in visualizations %}
+            <div class="card">
+                <div class="card-header">
+                    <h2>{{ viz.title }}</h2>
+                </div>
+                <div class="card-body">
+                    {% if viz.table %}
+                        <div class="table-responsive">
+                            {{ viz.table|safe }}
+                        </div>
+                    {% endif %}
+
+                    {% if viz.graph %}
+                        <div class="graph-container" style="margin-top: 20px;">
+                            {{ viz.graph|safe }}
+                        </div>
+                    {% endif %}
+                </div>
             </div>
         {% endfor %}
+    </div>
 </body>
 </html>

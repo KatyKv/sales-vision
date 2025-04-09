@@ -42,6 +42,9 @@ def upload():
     result = process_csv(file, current_app.config['UPLOAD_FOLDER'])  # Используем current_app
     if result.get('status') == 'success':
         session['saved_filename'] = result['saved_as']
+        # СЛЕДУЮЩАЯ СТРОКА ВРЕМЕННАЯ! ПРИ КОНФЛИКТЕ УДАЛИТЬ!
+        # (сделана для теста, пока версия Александра выдавала ошибку при загрузке)
+        return redirect(url_for('main.visualizations'))
     return jsonify(result)
 
 @main_bp.route('/download/<filename>')
@@ -120,6 +123,19 @@ def account():
 def load_csv():
         return render_template('load_csv.html')
 
+# Временная функция для тестирования визуализации. Потом, наверное, не нужна
+def df_to_html(df, limit=10):
+    """Преобразует DataFrame в HTML-таблицу с ограничением строк"""
+    return f"""
+    <div class="table-responsive">
+        <h4>Первые {limit} строк</h4>
+        {df.head(limit).to_html(classes='table table-striped table-bordered')}
+        <h4>Последние {limit} строк</h4>
+        {df.tail(limit).to_html(classes='table table-striped table-bordered')}
+        <p>Всего строк: {len(df)}</p>
+    </div>
+    """
+
 @main_bp.route("/visualizations")
 def visualizations():
     filename = session.get('saved_filename')
@@ -135,15 +151,53 @@ def visualizations():
     for key, value in metrics.items():
         logging.info(f"{key}: {value:.2f}")
 
+    df_limit = min(10, len(df))
+    # Группировки данных
     df_by_date = sales_by_date(df)
+    df_day_limit = min(10, len(df_by_date))
     df_by_month = sales_by_month(df)
+    df_month_limit = min(10, len(df_by_month))
     df_by_region = sales_by_region(df)
+    df_region_limit = min(10, len(df_by_region))
     df_top = top_products(df)
+    top_number = min(10, len(df_top))
 
-    graphs = {
-        "Выручка по месяцам": plot_sales_trend(df_by_month),
-        "Топ продуктов": plot_top_products(df_top),
-        "Топ продуктов по количеству": plot_top_products(df_top, 'quantity'),
-        "Выручка по регионам": plot_sales_by_region(df_by_region)
-    }
-    return render_template('visualizations.html', graphs=graphs)
+    # Список визуализаций, где чередуем таблицы и графики
+    visualizations_for_print = [
+        {
+            "title": "Исходные данные",
+            "table": df_to_html(df, df_limit),
+            "graph": None
+        },
+        {
+            "title": "Выручка по месяцам",
+            "table": df_to_html(df_by_month, df_month_limit),
+            "graph": plot_sales_trend(df_by_month)
+        },
+        {
+            "title": "Выручка по дням",
+            "table": df_to_html(df_by_date, df_day_limit),
+            "graph": plot_sales_trend(df_by_date, 'day')
+        },
+        {
+            "title": "Топ продуктов по выручке",
+            "table": df_to_html(df_top, top_number),
+            "graph": plot_top_products(df_top, top=top_number)
+        },
+        {
+            "title": "Топ продуктов по количеству",
+            "table": df_to_html(df_top, top_number),
+            "graph": plot_top_products(df_top, 'quantity', top_number)
+        },
+        {
+            "title": "Выручка по регионам",
+            "table": df_to_html(df_by_region, df_region_limit),
+            "graph": plot_sales_by_region(df_by_region)
+        }
+    ]
+
+    return render_template(
+        'visualizations.html',
+        visualizations=visualizations_for_print,
+        metrics=metrics
+    )
