@@ -1,0 +1,64 @@
+{% extends 'base.html' %}
+
+{% block title %}
+Загрузка csv файла
+{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <h2>Загрузка CSV файла</h2>
+    <form id="upload-form" method="POST" enctype="multipart/form-data" action="/upload" class="mb-4">
+    <div class="form-group">
+        <label for="csvFile" class="form-label">Выберите CSV файл</label>
+        <input type="file" id="csvFile" name="file" accept=".csv" required>
+    </div>
+    <p></p>
+    <button type="submit" class="btn btn-primary">Загрузить</button>
+</form>
+
+    <div id="upload-status" class="mb-2"></div>
+    <progress id="upload-progress" value="0" max="100" class="progress mt-2" style="width: 100%;"></progress>
+
+    <div id="report-container" class="mt-4" style="display: none;">
+        <h3>Отчет</h3>
+        <button id="generate-report" class="btn btn-success">Сформировать отчет</button>
+    </div>
+
+    <script>
+        function updateProgress(event) {
+            const progress = document.getElementById('upload-progress');
+            progress.value = (event.detail.loaded / event.detail.total) * 100;
+        }
+
+        // Обработчик для успешной загрузки
+        document.getElementById('upload-form').addEventListener('htmx:afterRequest', function(event) {
+            const response = event.detail.xhr.responseText;
+
+            // Проверяем, что загрузка была успешной
+            if (response.includes("Файл загружен успешно")) {
+                document.getElementById('report-container').style.display = 'block';
+            } else {
+                document.getElementById('report-container').style.display = 'none';
+            }
+        });
+
+        document.getElementById('generate-report').onclick = function() {
+            // Здесь будет ваш код для обработки нажатия кнопки "Сформировать отчет"
+            fetch('/generate_report') // Замените на ваш URL для генерации отчета
+                .then(response => {
+                    if (response.ok) {
+                        return response.json(); // Предполагается, что сервер возвращает JSON
+                    }
+                    throw new Error('Network response was not ok.');
+                })
+                .then(data => {
+                    // Обработка данных отчета
+                    alert('Отчет сформирован успешно!'); // Или выведите их на страницу
+                })
+                .catch(error => {
+                    console.error('Ошибка:', error);
+                });
+        }
+    </script>
+</div>
+{% endblock %}
