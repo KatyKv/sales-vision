@@ -1,7 +1,8 @@
 """
 Модуль обработки датасета продаж.
 
-Обрабатывает CSV-файлы с данными о продажах, содержащие обязательные колонки:
+Обрабатывает CSV-файлы с данными о продажах, содержащие обязательные колонки
+(наличие обязательных колонок проверяется при загрузке в модуле data_loader.py):
 - name: название товара
 - price: цена товара
 - quantity: количество проданных единиц
@@ -25,45 +26,63 @@ import re
 from typing import Dict, Any
 
 import pandas as pd
-import re
 
 logger = logging.getLogger(__name__)
 
 def check_date(val: str) -> pd.Timestamp:
-    """Преобразует строку с датой в формат временной метки (timestamp).
+    """Преобразование строки с датой в pd.Timestamp, без времени.
 
-    Поддерживает как полные даты (YYYY-MM-DD), так и периоды (YYYY-MM).
+    Поддерживает разные форматы:
+    - MM/DD/YYYY или DD/MM/YYYY (определяется автоматически)
+    - YYYY-MM
+    - YYYY-MM-DD
+    Возвращает только дату без времени.
     В случае нераспознаваемого формата возвращает pd.NaT.
 
     Args:
-        val (str): Строка с датой в формате YYYY-MM или YYYY-MM-DD
+        val (str): Строка с датой
 
     Returns:
         pd.Timestamp: Временная метка или pd.NaT при ошибке
 
     Example:
         >>> check_date("2023-05")
-        Timestamp('2023-05-01 00:00:00')
+        Timestamp('2023-05-01')
 
         >>> check_date("2023-05-15")
-        Timestamp('2023-05-01 00:00:00')
+        Timestamp('2023-05-01')
     """
     val = str(val).strip()
-    # Если строка уже в формате YYYY-MM
+
+    # 1. Год-месяц (например, "2023-01")
     if re.match(r'^\d{4}-\d{2}$', val):
         return pd.Period(val).to_timestamp()
-    else:
-        try:
-            # Попробуем преобразовать в дату и перевести в формат Period
-            return pd.to_datetime(val, errors='coerce').to_period('M').to_timestamp()
-        except Exception:
-            return pd.NaT  # если не получилось — NaT
 
-def load_data(filepath):
-    """Загружает и предварительно обрабатывает данные из CSV-файла.
+    # 2. Явно DD/MM/YYYY — если день > 12
+    if re.match(r'^\d{1,2}/\d{1,2}/\d{4}$', val):
+        parts = val.split("/")
+        day, month = int(parts[0]), int(parts[1])
+        if day > 12:
+            try:
+                return pd.to_datetime(val, dayfirst=True).normalize()
+            except Exception:
+                return pd.NaT
+
+    # 3. Всё остальное — парсинг с нормализацией
+    try:
+        parsed = pd.to_datetime(val)
+        return parsed.normalize()
+    except Exception:
+        logger.warning(f"Не удалось распознать дату: {val}")
+        return pd.NaT
+
+def load_data(filepath: str) -> pd.DataFrame:
+    """Загрузка и предварительная обработка данных из CSV-файла.
 
     Args:
-        filepath (str): Путь к CSV-файлу с данными о продажах
+        filepath (str): Путь к CSV-файлу с данными о продажах.
+        Файл должен содержать обязательные колонки:
+        name, price, quantity, date, region
 
     Returns:
         pd.DataFrame: Обработанный DataFrame с дополнительными колонками:
@@ -88,24 +107,41 @@ def load_data(filepath):
         df['revenue'] = df['quantity'] * df['price']
     else:
         df['revenue'] = pd.to_numeric(df['revenue'], errors='coerce')
-    df['date'] = pd.to_datetime(df['date'], errors='coerce')
-    df['ym'] = df['date'].apply(check_date)
+    df['date'] = df['date'].apply(check_date)
+    df['ym'] = df['date'].dt.to_period('M')
+
+    _preview_dates(df)
 
     return df
 
 
+def _preview_dates(df, column='date', limit=20):
+    """ТЕСТОВАЯ ВРЕМЕННАЯ ФУНКЦИЯ проверки загруженной даты"""
+    print(f"{'Исходная строка':<25} | {'Обработанная дата'}")
+    print("-" * 50)
+    seen = set()
+    count = 0
+    for val in df[column].unique():
+        if val in seen:
+            continue
+        seen.add(val)
+        parsed = check_date(val)
+        print(f"{str(val):<25} | {parsed}")
+        count += 1
+        if count >= limit:
+            break
+
 def calculate_metrics(df: pd.DataFrame) -> Dict[str, float]:
-    """Вычисляет ключевые метрики продаж из DataFrame.
+    """Вычисление ключевых метрик продаж из DataFrame.
 
     Args:
         df (pd.DataFrame): DataFrame с колонками ['revenue', 'quantity', 'price']
 
     Returns:
         Dict[str, float]: Словарь с вычисленными метриками:
-            - total_revenue: общая выручка
-            - total_sales: общее количество продаж
+            - total_revenue: выручка
+            - total_sales: объем продаж
             - average_price: средняя цена товара
-            - average_check: средний чек
 
     Example:
         >>> metrics = calculate_metrics(df)
@@ -115,13 +151,19 @@ def calculate_metrics(df: pd.DataFrame) -> Dict[str, float]:
         'total_revenue': df['revenue'].sum(),
         'total_sales': df['quantity'].sum(),
         'average_price': df['price'].mean(),
-        'average_check': df['revenue'].mean()
+        'median_price': df['price'].median()  # Добавлено
+    }
+    metrics_ru_names = {
+        'total_revenue': 'выручка',
+        'total_sales': 'объем продаж',
+        'average_price': 'средняя цена товара',
+        'median_price': 'медианная цена товара'  # Добавлено
     }
     return metrics
 
 
 def sales_by_date(df: pd.DataFrame) -> pd.DataFrame:
-    """Агрегирует данные о продажах по дням.
+    """Агрегация данных о продажах по дням.
 
     Args:
         df (pd.DataFrame): Исходный DataFrame с колонкой 'date'
@@ -138,7 +180,7 @@ def sales_by_date(df: pd.DataFrame) -> pd.DataFrame:
 
 
 def sales_by_month(df: pd.DataFrame) -> pd.DataFrame:
-    """Агрегирует данные о продажах по месяцам.
+    """Агрегация данных о продажах по месяцам.
 
     Args:
         df (pd.DataFrame): Исходный DataFrame с колонкой 'ym'
@@ -151,11 +193,15 @@ def sales_by_month(df: pd.DataFrame) -> pd.DataFrame:
         >>> monthly_sales = sales_by_month(df)
         >>> print(monthly_sales.head())
     """
-    return df.groupby('ym').agg({'revenue': 'sum', 'quantity': 'sum'}).reset_index()
+    result = df.groupby('ym').agg({'revenue': 'sum', 'quantity': 'sum'}).reset_index()
+    result['ym'] = result['ym'].dt.to_timestamp()  # преобразование Period в Timestamp
+    return result
 
-
-def top_products(df, by='quantity', top_n=10):
-    """Возвращает топ-N товаров по указанному критерию.
+def top_products(
+        df: pd.DataFrame,
+        by: str = 'quantity',
+        top_n: int = 10) -> pd.DataFrame:
+    """Топ-N товаров по указанному критерию.
 
     Args:
         df (pd.DataFrame): Исходный DataFrame
@@ -173,9 +219,29 @@ def top_products(df, by='quantity', top_n=10):
         {'quantity': 'sum', 'revenue': 'sum'}
         ).sort_values(by, ascending=False).head(top_n)
 
+def average_price_per_product(df: pd.DataFrame) -> pd.DataFrame:
+    """Расчет средней цены по каждому товару.
+
+    Учитывает случаи, когда один товар продавался по разной цене.
+
+    Args:
+        df (pd.DataFrame): DataFrame с колонками ['name', 'price']
+
+    Returns:
+        pd.DataFrame: DataFrame с колонками ['name', 'average_price'],
+            отсортированный по убыванию средней цены
+
+    Example:
+        >>> avg_prices = average_price_per_product(df)
+        >>> print(avg_prices.head())
+    """
+    return df.groupby('name')['price'].mean().reset_index(
+        ).rename(columns={'price': 'average_price'}
+        ).sort_values('average_price', ascending=False)
+
 
 def sales_by_region(df: pd.DataFrame) -> pd.DataFrame:
-    """Анализирует продажи по регионам.
+    """Анализ продаж по регионам.
 
     Группирует данные по регионам, вычисляя общую выручку и количество продаж.
     Результат сортируется по убыванию выручки.
@@ -200,6 +266,35 @@ def sales_by_region(df: pd.DataFrame) -> pd.DataFrame:
     return df.groupby('region').agg(
         {'revenue': 'sum', 'quantity': 'sum'}
         ).sort_values('revenue', ascending=False).reset_index()
+
+
+def top_products_by_region(df: pd.DataFrame, by='quantity', top_n=3) -> pd.DataFrame:
+    """Определение топ-N товаров по каждому региону.
+
+    Args:
+        df (pd.DataFrame): Исходный DataFrame с колонками ['region', 'name', 'quantity', 'revenue']
+        by (str): Критерий сортировки ('quantity' или 'revenue')
+        top_n (int): Количество топ-товаров на регион
+
+    Returns:
+        pd.DataFrame: DataFrame с мультииндексом ['region', 'rank'] и колонками ['name', 'quantity', 'revenue']
+
+    Example:
+        >>> top = top_products_by_region(df, by='revenue', top_n=2)
+        >>> print(top.head())
+    """
+    grouped = df.groupby(['region', 'name']).agg({'quantity': 'sum', 'revenue': 'sum'})
+    grouped = grouped.sort_values([by], ascending=False).reset_index()
+
+    result = (
+        grouped.groupby('region')
+        .head(top_n)
+        .reset_index(drop=True)
+        .assign(rank=lambda x: x.groupby('region').cumcount() + 1)
+        .set_index(['region', 'rank'])
+    )
+    return result
+
 
 
 

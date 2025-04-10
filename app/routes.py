@@ -19,10 +19,12 @@ from app.forms import RegistrationForm, LoginForm, EditForm
 from app.models import User
 from .analytics import (
     load_data, calculate_metrics, sales_by_date,
-    sales_by_month, top_products, sales_by_region
+    sales_by_month, top_products, sales_by_region,
+    average_price_per_product
 )
 from .visualization import (
     plot_sales_trend, plot_top_products, plot_sales_by_region,
+    plot_average_price_per_product, is_enough_data
 )
 from .data_loader import process_csv
 
@@ -146,6 +148,91 @@ def df_to_html(df, limit=10):
         <p>Всего строк: {len(df)}</p>
     </div>
     """
+
+# ТЕСТОВАЯ СТРАНИЦА ВИЗУАЛИЗАЦИИ! УДАЛИТЬ В ФИНАЛЕ.
+@main_bp.route("/visualizations")
+def visualizations():
+    filename = session.get('saved_filename')
+    if not filename:
+        return "Файл не найден. Сначала загрузите CSV.", 400
+    data_file_path = str(os.path.join(current_app.config['UPLOAD_FOLDER'], filename))
+    if not os.path.exists(data_file_path):
+        return "Файл не найден на сервере", 404
+    df = load_data(data_file_path)
+    logging.info('Файл успешно загружен')
+
+    metrics = calculate_metrics(df)
+    for key, value in metrics.items():
+        logging.info(f"{key}: {value:.2f}")
+
+    # Подготовка данных для таблиц и графиков
+    df_limit = min(10, len(df))
+    df_by_date = sales_by_date(df)
+    df_day_limit = min(10, len(df_by_date))
+    df_by_month = sales_by_month(df)
+    df_month_limit = min(10, len(df_by_month))
+    df_by_region = sales_by_region(df)
+    df_region_limit = min(10, len(df_by_region))
+    df_top_revenue = top_products(df, by='revenue')
+    df_top_quantity = top_products(df, by='quantity')
+    top_number = min(10, len(df_top_revenue))
+    df_avg_price = average_price_per_product(df)
+    avg_price_number = min(10, len(df_avg_price))
+
+    # Список визуализаций, где чередуются таблицы и графики
+    visualizations_for_print = [
+        {
+            "title": "Исходные данные",
+            "table": df_to_html(df, df_limit),
+            "graph": None
+        },
+        {
+            "title": "Выручка по месяцам",
+            "table": df_to_html(df_by_month, df_month_limit),
+            "graph": (
+                plot_sales_trend(df_by_month)
+                if is_enough_data(df_by_month, 'ym')
+                else "<p>Недостаточно данных для графика "
+                     "(нужно более 1 месяца)</p>"
+            )
+        },
+        {
+            "title": "Выручка по дням",
+            "table": df_to_html(df_by_date, df_day_limit),
+            "graph": (
+                plot_sales_trend(df_by_date, 'day')
+                if is_enough_data(df_by_date, 'date')
+                else "<p>Недостаточно данных для графика "
+                     "(нужно более 1 дня)</p>"
+            )
+        },
+        {
+            "title": "Топ продуктов по выручке",
+            "table": df_to_html(df_top_revenue, top_number),
+            "graph": plot_top_products(df_top_revenue, top=top_number)
+        },
+        {
+            "title": "Топ продуктов по количеству",
+            "table": df_to_html(df_top_quantity, top_number),
+            "graph": plot_top_products(df_top_quantity, 'quantity', top_number)
+        },
+        {
+            "title": "Выручка по регионам",
+            "table": df_to_html(df_by_region, df_region_limit),
+            "graph": plot_sales_by_region(df_by_region)
+        },
+        {
+            "title": "Средняя цена по товарам",
+            "table": df_to_html(df_avg_price, avg_price_number),
+            "graph": plot_average_price_per_product(df_avg_price, top=avg_price_number)
+        }
+    ]
+
+    return render_template(
+        'visualizations.html',
+        visualizations=visualizations_for_print,
+        metrics=metrics
+    )
 
 @main_bp.route('/generate_report', methods=['POST'])
 def generate_report():
