@@ -1,75 +1,128 @@
-import matplotlib.pyplot as plt
-import seaborn as sns
+"""
+Модуль визуализации данных продаж с помощью Plotly.
+
+Предоставляет функции для создания интерактивных визуализаций:
+- Тренды продаж по дням/месяцам
+- Топ товаров по выручке или количеству продаж
+- Распределение продаж по регионам
+
+Входные данные:
+Все функции принимают предварительно обработанные DataFrame:
+- Для plot_sales_trend: сгруппированные по дням/месяцам
+- Для plot_top_products: агрегированные по товарам
+- Для plot_sales_by_region: сгруппированные по регионам
+
+Основные функции:
+- plot_sales_trend: линейный график динамики выручки
+- plot_top_products: барчарт топовых товаров
+- plot_sales_by_region: круговая диаграмма по регионам
+
+Пример использования:
+    >>> from app.visualization import plot_sales_trend, plot_top_products
+    >>> df_monthly = sales_by_month(df)  # из модуля обработки
+    >>> html_plot = plot_sales_trend(df_monthly, period='month')
+    >>> top_df = top_products(df)  # из модуля обработки
+    >>> html_top = plot_top_products(top_df, by='revenue', top=15)
+
+Возвращаемое значение:
+Все функции возвращают HTML-код графика (str), который можно:
+- Вставить напрямую в шаблон Flask/Jinja2
+- Сохранить в файл для статичной визуализации
+"""
+
+from typing import Literal
+
+import pandas as pd
+import plotly.express as px
+import plotly.io as pio
+
+def plot_sales_trend(df: pd.DataFrame,
+                     period: Literal['day', 'month']='month') -> str:
+    """Строит линейный график динамики выручки за период.
+
+    Args:
+        df: DataFrame с колонками:
+            - 'ym' или 'date' (в зависимости от периода)
+            - 'revenue' (суммарная выручка)
+        period: Группировка по 'day' (дням) или 'month' (месяцам)
+
+    Returns:
+        str: HTML-код интерактивного графика
+
+    Example:
+        >>> df_monthly = sales_by_month(raw_df)
+        >>> plot_html = plot_sales_trend(df_monthly, 'month')
+        >>> display(HTML(plot_html))  # для Jupyter
+    """
+    period_col = 'ym' if period=='month' else 'date'
+    fig = px.line(df, x=period_col, y='revenue', markers=True,
+                  title=f'Динамика выручки по {"месяцам" if period=="month" else "дням"}')
+    fig.update_layout(xaxis_title='Дата', yaxis_title='Выручка')
+    return pio.to_html(fig, full_html=False)
+
+def plot_top_products(df: pd.DataFrame,
+                      by: Literal['revenue', 'quantity']='revenue',
+                      top: int=10) -> str:
+    """Визуализирует топ товаров в виде горизонтальной гистограммы.
+
+    Args:
+        df: DataFrame с товарами в индексе и колонками:
+            - 'revenue' (суммарная выручка по товару)
+            - 'quantity' (количество продаж)
+        by: Критерий сортировки ('revenue' или 'quantity')
+        top: Количество отображаемых товаров
+
+    Returns:
+        str: HTML-код интерактивного графика
+
+    Note:
+        Рекомендуется использовать с DataFrame из top_products()
+
+    Example:
+        >>> top_df = top_products(raw_df, by='revenue', top_n=15)
+        >>> plot_html = plot_top_products(top_df, top=15)
+    """
+    # Сортировка данных и выбор топ-10 (или др.)
+    df = df.sort_values(by, ascending=False).head(top)
+
+    # Создаем горизонтальную гистограмму
+    fig = px.bar(df, y=df.index, x=by, orientation='h',
+                 title=f'ТОП-{top} товаров по {"выручке" if by == "revenue" else "продажам"}',
+                 labels={by: 'Значение', 'index': 'Товар'},
+                 color=df.index,  # цвет для различения товаров
+                 color_discrete_sequence=px.colors.sequential.Viridis)
+
+    # Обновление макета для добавления сетки по оси Y
+    fig.update_layout(yaxis_title='Товар', xaxis_title='Значение',
+                      yaxis=dict(categoryorder='total ascending'))
+    return pio.to_html(fig, full_html=False)
 
 
-def plot_sales_trend(df):
-    """График динамики продаж."""
-    plt.figure(figsize=(10, 5))
-    sns.lineplot(data=df, x='ym', y='revenue', marker='o')
-    plt.title('Динамика выручки по месяцам')
-    plt.xlabel('Дата')
-    plt.ylabel('Выручка')
-    plt.xticks(rotation=45)
-    plt.grid()
-    plt.show()
+def plot_sales_by_region(df) -> str:
+    """Строит круговую диаграмму распределения выручки по регионам.
+
+    Args:
+        df: DataFrame с колонками:
+            - 'region' (название региона)
+            - 'revenue' (суммарная выручка)
+
+    Returns:
+        str: HTML-код интерактивной диаграммы
+
+    Example:
+        >>> region_df = sales_by_region(raw_df)
+        >>> plot_html = plot_sales_by_region(region_df)
+    """
+    fig = px.pie(df, values='revenue', names='region',
+                 title='Доля выручки по регионам',
+                 color_discrete_sequence=px.colors.sequential.tempo)
+
+    # Обновление макета, чтобы изменить угол поворота
+    fig.update_traces(textinfo='percent+label', hole=0)
+    fig.update_layout(showlegend=True)  # Отображение легенды
+    fig.update_traces(rotation=140)  # Установка начального угла
+
+    return pio.to_html(fig, full_html=False)
 
 
-def plot_top_products(df, by='revenue'):
-    """Горизонтальная гистограмма ТОП-10 товаров."""
-    df = df.sort_values(by, ascending=True)
-    plt.figure(figsize=(10, 6))
-    sns.barplot(y=df.index, x=df[by], palette='viridis', hue=df.index)
-    plt.title(f'ТОП товаров по {"выручке" if by == "revenue" else "продажам"}')
-    plt.xlabel('Значение')
-    plt.ylabel('Товар')
-    plt.grid(axis='x')
-    plt.show()
 
-
-def plot_sales_by_region(df):
-    """Круговая диаграмма продаж по регионам."""
-    plt.figure(figsize=(8, 8))
-    plt.pie(df['revenue'], labels=df['region'], autopct='%1.1f%%',
-            startangle=140, colors=sns.color_palette('pastel'))
-    plt.title('Доля выручки по регионам')
-    plt.show()
-
-
-def plot_all_together(df, df_top, df_by_region):
-    """Все 4 графика на одной фигуре."""
-    fig, axes = plt.subplots(2, 2, figsize=(13, 8))
-
-    # График 1: Динамика выручки по месяцам
-    sns.lineplot(data=df, x='ym', y='revenue', marker='o', ax=axes[0, 0])
-    axes[0, 0].set_title('Динамика выручки по месяцам')
-    axes[0, 0].set_xlabel('Дата')
-    axes[0, 0].set_ylabel('Выручка')
-    axes[0, 0].tick_params(axis='x', rotation=45)
-    axes[0, 0].grid()
-
-    # График 2: ТОП товаров по выручке
-    df_sorted_revenue = df_top.sort_values('revenue', ascending=True)
-    sns.barplot(y=df_sorted_revenue.index, x=df_sorted_revenue['revenue'],
-                palette='viridis', hue=df_sorted_revenue.index, ax=axes[0, 1])
-    axes[0, 1].set_title('ТОП товаров по выручке')
-    axes[0, 1].set_xlabel('Выручка')
-    axes[0, 1].set_ylabel('Товар')
-    axes[0, 1].grid(axis='x')
-
-    # График 3: ТОП товаров по количеству
-    df_sorted_quantity = df_top.sort_values('quantity', ascending=True)
-    sns.barplot(y=df_sorted_quantity.index, x=df_sorted_quantity['quantity'],
-                palette='viridis', hue=df_sorted_quantity.index, ax=axes[1, 0])
-    axes[1, 0].set_title('ТОП товаров по количеству')
-    axes[1, 0].set_xlabel('Количество')
-    axes[1, 0].set_ylabel('Товар')
-    axes[1, 0].grid(axis='x')
-
-    # График 4: Доля выручки по регионам
-    axes[1, 1].pie(df_by_region['revenue'], labels=df_by_region['region'],
-                   autopct='%1.1f%%', startangle=140,
-                   colors=sns.color_palette('pastel'))
-    axes[1, 1].set_title('Доля выручки по регионам')
-
-    plt.tight_layout()
-    plt.show()

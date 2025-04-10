@@ -1,0 +1,108 @@
+{% extends 'base.html' %}
+
+{% block title %}
+    Загрузка CSV файла
+{% endblock %}
+
+{% block content %}
+    <div class="container mt-5">
+        <h2>Загрузка CSV файла</h2>
+        <form id="upload-form" enctype="multipart/form-data" class="mb-4" action="/upload">
+            <div class="form-group">
+                <label for="csvFile" class="form-label">Выберите CSV файл</label>
+                <input type="file" id="csvFile" name="file" accept=".csv" required>
+            </div>
+            <button type="button" id="upload-btn" class="btn btn-primary">Загрузить</button>
+        </form>
+
+        <div id="upload-status" class="mb-2"></div>
+
+        <div id="report-container" class="mt-4" style="display: none;">
+            <h3>Отчет</h3>
+            <form action="/generate_report" method="post" enctype="multipart/form-data">
+                <button id="generate-report-btn" class="btn btn-success">Сформировать отчет</button>
+            </form>
+            <div id="charts-container">
+
+                <table class="table table-striped table-bordered mx-auto" style="width: 50%;">
+                    <thead>
+                    <tr>
+                        <th class="text-center">Название метрики</th>
+                        <th class="text-center">Значение</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    {% if metrics %}
+                        {% for key, value in metrics.items() %}
+                            <tr class="text-center">
+                                <td>{{ key }}</td>
+                                <td>{{ value }}</td>
+                            </tr>
+                        {% endfor %}
+                    {% endif %}
+                    </tbody>
+                </table>
+
+                {% if graphs %}
+                    <h2>Графики:</h2>
+                    {% for graph_name, graph_html in graphs.items() %}
+                        <h2>{{ graph_name }}</h2>
+                        {{ graph_html|safe }}
+                    {% endfor %}
+                {% endif %}
+
+                <div id="sales-trend-chart"></div>
+                <div id="top-products-chart"></div>
+                <div id="sales-by-region-chart"></div>
+            </div>
+
+            <button id="download-report-btn" class="btn btn-info mt-3" style="display: none;">Скачать отчет</button>
+        </div>
+    </div>
+
+    <script>
+        let uploadedFilePath;
+
+        document.getElementById('upload-btn').onclick = function () {
+            const formData = new FormData();
+            const fileInput = document.getElementById('csvFile');
+            formData.append('file', fileInput.files[0]);
+
+            fetch('/upload', {
+                method: 'POST',
+                body: formData
+            })
+                .then(response => response.json())
+                .then(data => {
+                    uploadedFilePath = data.filepath;
+                    document.getElementById('upload-status').innerText = data.message;
+                    document.getElementById('report-container').style.display = 'block';
+                })
+                .catch(error => console.error('Ошибка:', error));
+        };
+
+        document.getElementById('generate-report-btn').onclick = function () {
+            fetch('/generate_report', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({filepath: uploadedFilePath})
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.report_path) {
+                        document.getElementById('download-report-btn').style.display = 'block';
+                        document.getElementById('download-report-btn').onclick = function () {
+                            window.location.href = `/download_report?filename=${data.report_path}`;
+                        };
+
+                        // Вставляем графики на страницу
+                        document.getElementById('sales-trend-chart').innerHTML = data.sales_trend_html;
+                        document.getElementById('top-products-chart').innerHTML = data.top_products_html;
+                        document.getElementById('sales-by-region-chart').innerHTML = data.sales_by_region_html;
+                    }
+                })
+                .catch(error => console.error('Ошибка:', error));
+        };
+
+    </script>
+{% endblock %}
