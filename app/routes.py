@@ -21,7 +21,6 @@ from .analytics import (
     load_data, calculate_metrics, sales_by_date,
     sales_by_month, top_products, sales_by_region
 )
-#from .analytics import generate_analysis — почему закомменчено?
 from .visualization import (
     plot_sales_trend, plot_top_products, plot_sales_by_region,
 )
