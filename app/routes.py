@@ -77,65 +77,60 @@ def home():
 
 @main_bp.route('/register', methods=['GET', 'POST'])
 def register():
-    return "Функция пока отключена"
-    # if current_user.is_authenticated:
-    #     return redirect(url_for('main.home'))
-    # form = RegistrationForm()
-    # if form.validate_on_submit():
-    #     hashed_password = bcrypt.generate_password_hash(form.password.data).decode('utf-8')  # что делает эта команда??
-    #     user = User(username=form.username.data, email=form.email.data, password=hashed_password)
-    #     db.session.add(user)
-    #     db.session.commit()
-    #     flash('Вы успешно зарегистрировались', 'success')
-    #     return redirect(url_for('main.login'))
-    # return render_template('registration.html', form=form, title='Register')
+    if current_user.is_authenticated:
+        return redirect(url_for('main.home'))
+    form = RegistrationForm()
+    if form.validate_on_submit():
+        hashed_password = bcrypt.generate_password_hash(form.password.data).decode('utf-8')  # что делает эта команда??
+        user = User(username=form.username.data, email=form.email.data, password=hashed_password)
+        db.session.add(user)
+        db.session.commit()
+        flash('Вы успешно зарегистрировались', 'success')
+        return redirect(url_for('main.login'))
+    return render_template('registration.html', form=form, title='Register')
 
 
 @main_bp.route('/login', methods=['GET', 'POST'])
 def login():
-    return "Функция пока отключена"
-    # if current_user.is_authenticated:
-    #     return redirect(url_for('main.home'))
-    # form = LoginForm()
-    # if form.validate_on_submit():
-    #     user = User.query.filter_by(email=form.email.data).first()
-    #     if user and bcrypt.check_password_hash(user.password, form.password.data):
-    #         login_user(user, remember=form.remember_me.data)
-    #         return redirect(url_for('main.load_csv'))  #  сделать форму загрузки csv
-    #     else:
-    #         print('Введены неверные данные')
-    # return render_template('login.html', form=form, title='Login')
+    if current_user.is_authenticated:
+        return redirect(url_for('main.home'))
+    form = LoginForm()
+    if form.validate_on_submit():
+        user = User.query.filter_by(email=form.email.data).first()
+        if user and bcrypt.check_password_hash(user.password, form.password.data):
+            login_user(user, remember=form.remember_me.data)
+            return redirect(url_for('main.load_csv'))  #  сделать форму загрузки csv
+        else:
+            print('Введены неверные данные')
+    return render_template('login.html', form=form, title='Login')
 
 @main_bp.route('/edit', methods=['GET', 'POST'])
 def edit():
-    return "Функция пока отключена"
-    # if not current_user.is_authenticated:
-    #     return redirect(url_for('main.login'))
-    # user = User.query.get(current_user.id)
-    # form = EditForm(obj=user)
-    # if form.validate_on_submit():
-    #     hashed_password = bcrypt.generate_password_hash(form.password.data).decode('utf-8')  # что делает эта команда??
-    #     user.password = hashed_password
-    #     user.username = form.username.data
-    #     user.email = form.email.data
-    #     db.session.commit()
-    #     flash('Вы успешно изменили данные', 'success')
-    #     return redirect(url_for('main.home'))
-    # return render_template('edit.html', form=form, title='Edit')
+    if not current_user.is_authenticated:
+        return redirect(url_for('main.login'))
+    user = User.query.get(current_user.id)
+    form = EditForm(obj=user)
+    if form.validate_on_submit():
+        hashed_password = bcrypt.generate_password_hash(form.password.data).decode('utf-8')  # что делает эта команда??
+        user.password = hashed_password
+        user.username = form.username.data
+        user.email = form.email.data
+        db.session.commit()
+        flash('Вы успешно изменили данные', 'success')
+        return redirect(url_for('main.home'))
+    return render_template('edit.html', form=form, title='Edit')
 
 
 @main_bp.route('/logout')
 def logout():
-    return "Функция пока отключена"
-    # logout_user()  # завершает сессию пользователя (удаляет логин, куки и т.п.)
-    # return redirect(url_for('main.home'))
+    logout_user()  # завершает сессию пользователя (удаляет логин, куки и т.п.)
+    return redirect(url_for('main.home'))
 
 @main_bp.route('/account')
 @login_required  # не даёт открыть маршрут, если пользователь не залогинен
 def account():
-    return "Функция пока отключена"
-    # form = LoginForm()
-    # return render_template('account.html', form=form, title='Account')
+    form = LoginForm()
+    return render_template('account.html', form=form, title='Account')
 
 
 @main_bp.route('/load_csv', methods=['GET', 'POST'])
