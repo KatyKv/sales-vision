@@ -12,93 +12,147 @@ COLUMN_NAMES = {
     **{k: 'name' for k in [
         # Русские варианты
         'имя', 'название', 'наименование', 'товар', 'продукт', 'изделие',
-        'товарный знак', 'бренд', 'марка', 'модель', 'артикул', 'код товара',
-        'название товара', 'наименование позиции', 'описание', 'продукция',
-        'категория', 'тип', 'группа', 'линейка', 'серия',
+        'товарный знак', 'товарный_знак', 'бренд', 'марка', 'модель', 'артикул', 'код товара', 'код_товара',
+        'название товара', 'название_товара', 'наименование позиции', 'наименование_позиции',
+        'описание', 'продукция', 'категория', 'тип', 'группа', 'линейка', 'серия',
 
         # Английские варианты
         'name', 'product', 'item', 'goods', 'article', 'sku', 'model',
-        'brand', 'title', 'description', 'product name', 'product_name',
-        'item name', 'item_name', 'itemname', 'product title', 'product_title',
-        'producttitle', 'product description', 'product_description',
-        'productdescription', 'product code', 'product_code', 'productcode',
-        'stock code', 'stock_code', 'stockcode', 'item code', 'item_code',
-        'itemcode', 'product group', 'product_group', 'productgroup',
+        'brand', 'title', 'description',
+        'product name', 'product_name', 'productname',
+        'item name', 'item_name', 'itemname',
+        'product title', 'product_title', 'producttitle',
+        'product description', 'product_description', 'productdescription',
+        'product code', 'product_code', 'productcode',
+        'stock code', 'stock_code', 'stockcode',
+        'item code', 'item_code', 'itemcode',
+        'product group', 'product_group', 'productgroup',
         'category', 'type', 'series', 'line'
     ]},
 
     # Для цены
     **{k: 'price' for k in [
         # Русские варианты
-        'цена', 'стоимость', 'сумма', 'ценник', 'цена продажи', 'цена покупки', 'выручка',
-        'розничная цена', 'оптовая цена', 'себестоимость', 'цена за единицу',
-        'цена товара', 'цена позиции', 'цена без скидки', 'финальная цена',
-        'рекомендованная цена', 'рыночная цена',
+        'цена', 'стоимость', 'сумма', 'ценник',
+        'цена продажи', 'цена_продажи',
+        'цена покупки', 'цена_покупки',
+        'выручка', 'розничная цена', 'розничная_цена',
+        'оптовая цена', 'оптовая_цена',
+        'себестоимость', 'цена за единицу', 'цена_за_единицу',
+        'цена товара', 'цена_товара',
+        'цена позиции', 'цена_позиции',
+        'цена без скидки', 'цена_без_скидки',
+        'финальная цена', 'финальная_цена',
+        'рекомендованная цена', 'рекомендованная_цена',
+        'рыночная цена', 'рыночная_цена',
 
         # Английские варианты
-        'price', 'cost', 'amount', 'retail price', 'wholesale price',
-        'unit price', 'unitprice', 'sale price', 'purchase price', 'list price',
-        'market price', 'msrp', 'recommended price', 'final price',
-        'item price', 'product price', 'price per unit'
+        'price', 'cost', 'amount',
+        'retail price', 'retail_price', 'retailprice',
+        'wholesale price', 'wholesale_price', 'wholesaleprice',
+        'unit price', 'unit_price', 'unitprice',
+        'sale price', 'sale_price', 'saleprice',
+        'purchase price', 'purchase_price', 'purchaseprice',
+        'list price', 'list_price', 'listprice',
+        'market price', 'market_price', 'marketprice',
+        'msrp', 'recommended price', 'recommended_price', 'recommendedprice',
+        'final price', 'final_price', 'finalprice',
+        'item price', 'item_price', 'itemprice',
+        'product price', 'product_price', 'productprice',
+        'price per unit', 'price_per_unit', 'priceperunit'
     ]},
 
     # Для количества
     **{k: 'quantity' for k in [
         # Русские варианты
-        'количество', 'кол-во', 'число', 'объем', 'продажи', 'запас',
-        'остаток', 'количество на складе', 'доступное количество',
-        'количество товара', 'количество позиций', 'штук', 'упаковок',
+        'количество', 'кол-во', 'число', 'объем',
+        'продажи', 'запас', 'остаток',
+        'количество на складе', 'количество_на_складе',
+        'доступное количество', 'доступное_количество',
+        'количество товара', 'количество_товара',
+        'количество позиций', 'количество_позиций',
+        'штук', 'упаковок',
 
         # Английские варианты
         'quantity', 'qty', 'amount', 'number', 'count', 'stock',
-        'inventory', 'available quantity', 'stock quantity',
-        'items in stock', 'units', 'packages', 'pieces'
+        'inventory',
+        'available quantity', 'available_quantity', 'availablequantity',
+        'stock quantity', 'stock_quantity', 'stockquantity',
+        'items in stock', 'items_in_stock', 'itemsinstock',
+        'units', 'packages', 'pieces'
     ]},
 
     # Для даты
     **{k: 'date' for k in [
         # Русские варианты
-        'дата', 'дата продажи', 'дата покупки', 'дата создания',
-        'дата обновления', 'дата транзакции', 'дата заказа',
-        'дата поставки', 'дата выполнения', 'время', 'период',
-        'год', 'месяц', 'день', 'срок',
+        'дата',
+        'дата продажи', 'дата_продажи',
+        'дата покупки', 'дата_покупки',
+        'дата создания', 'дата_создания',
+        'дата обновления', 'дата_обновления',
+        'дата транзакции', 'дата_транзакции',
+        'дата заказа', 'дата_заказа',
+        'дата поставки', 'дата_поставки',
+        'дата выполнения', 'дата_выполнения',
+        'время', 'период', 'год', 'месяц', 'день', 'срок',
 
         # Английские варианты
-        'date', 'sale date', 'purchase date', 'creation date',
-        'update date', 'transaction date', 'order date',
-        'delivery date', 'fulfillment date', 'time', 'period',
-        'year', 'month', 'day', 'datetime', 'timestamp',
-        'invoice_date', 'invoicedate'
+        'date',
+        'sale date', 'sale_date', 'saledate',
+        'purchase date', 'purchase_date', 'purchasedate',
+        'creation date', 'creation_date', 'creationdate',
+        'update date', 'update_date', 'updatedate',
+        'transaction date', 'transaction_date', 'transactiondate',
+        'order date', 'order_date', 'orderdate',
+        'delivery date', 'delivery_date', 'deliverydate',
+        'fulfillment date', 'fulfillment_date', 'fulfillmentdate',
+        'time', 'period', 'year', 'month', 'day',
+        'datetime', 'timestamp', 'invoice_date', 'invoicedate'
     ]},
 
     # Для региона/локации
     **{k: 'region' for k in [
         # Русские варианты
         'регион', 'область', 'город', 'страна', 'территория',
-        'зона', 'район', 'округ', 'местоположение', 'локация',
-        'место', 'адрес', 'филиал', 'магазин', 'точка продаж',
+        'зона', 'район', 'округ',
+        'местоположение', 'локация', 'место',
+        'адрес', 'филиал', 'магазин',
+        'точка продаж', 'точка_продаж',
         'склад', 'центр', 'подразделение',
 
         # Английские варианты
         'region', 'area', 'city', 'country', 'territory',
-        'zone', 'district', 'location', 'place', 'address',
-        'branch', 'store', 'shop', 'outlet', 'warehouse',
-        'center', 'division', 'department', 'shopping_mall'
+        'zone', 'district',
+        'location', 'place', 'address',
+        'branch', 'store', 'shop', 'outlet',
+        'warehouse', 'center', 'division', 'department',
+        'shopping mall', 'shopping_mall', 'shoppingmall'
     ]},
 
     # Дополнительные часто используемые поля
     **{k: 'discount' for k in [
-        'скидка', 'процент скидки', 'размер скидки', 'discount',
-        'discount percent', 'discount amount'
+        'скидка',
+        'процент скидки', 'процент_скидки',
+        'размер скидки', 'размер_скидки',
+        'discount',
+        'discount percent', 'discount_percent', 'discountpercent',
+        'discount amount', 'discount_amount', 'discountamount'
     ]},
 
     **{k: 'currency' for k in [
-        'валюта', 'код валюты', 'currency', 'currency code'
+        'валюта',
+        'код валюты', 'код_валюты',
+        'currency',
+        'currency code', 'currency_code', 'currencycode'
     ]},
 
     **{k: 'id' for k in [
-        'ид', 'код', 'уникальный код', 'идентификатор', 'id',
-        'code', 'unique code', 'identifier'
+        'ид', 'код',
+        'уникальный код', 'уникальный_код',
+        'идентификатор',
+        'id', 'code',
+        'unique code', 'unique_code', 'uniquecode',
+        'identifier'
     ]}
 }
 
