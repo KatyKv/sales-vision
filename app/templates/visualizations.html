@@ -1,11 +1,32 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ru">
 <head>
     <meta charset="UTF-8">
     <title>Визуализации</title>
 </head>
 <body>
     <h1>Визуализация продаж</h1>
+
+    <!-- Блок с метриками -->
+    <div class="metrics-container">
+        <h2>Ключевые метрики</h2>
+        <div class="metrics-grid">
+            <div class="metric-card">
+                <div class="metric-title">Общая выручка</div>
+                <div class="metric-value">{{ "%.2f"|format(metrics['total_revenue']) }}</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-title">Общий объем продаж</div>
+                <div class="metric-value">{{ "%.0f"|format(metrics['total_sales']) }}</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-title">Средняя цена товара</div>
+                <div class="metric-value">{{ "%.2f"|format(metrics['average_price']) }}</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Блок с визуализациями -->
     <div class="container">
         {% for viz in visualizations %}
             <div class="card">
