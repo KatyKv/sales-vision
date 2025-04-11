@@ -54,35 +54,47 @@
                 </table>
             {% endif %}
 
-            {% if graphs %}
-                <div class="dropdown" style="margin-top: 20px; display: none;" id="dropdown-container">
-                    <button class="btn btn-secondary dropdown-toggle" type="button" id="dropdownMenuButton"
-                            data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                        Выберите график
-                    </button>
-                    <div class="dropdown-menu" aria-labelledby="dropdownMenuButton">
-                        <a class="dropdown-item" href="#" data-graph="all">Показать все</a>
-                        {% for title, graph in graphs.items() %}
-                            <a class="dropdown-item" href="#" data-graph="{{ title }}">{{ title }}</a>
-                        {% endfor %}
-                    </div>
-                </div>
 
-                <div id="all-graphs">
+            <div class="col-md-3">
+                <select class="form-control" id="graph-selector" onchange="updateGraphs()">
+                    <option value="all">Показать все</option>
                     {% for title, graph in graphs.items() %}
-                        <div class="single-graph" data-graph="{{ title }}">
-                            <center><h2>{{ title }}</h2></center>
-                            {{ graph|safe }}
-                        </div>
+                        <option value="{{ title }}">{{ title }}</option>
                     {% endfor %}
+                </select>
+            </div>
+            {% for title, graph in graphs.items() %}
+                <div class="single-graph" data-graph="{{ title }}">
+                    <center><h2>{{ title }}</h2></center>
+                    {{ graph|safe }}
                 </div>
-            {% endif %}
+            {% endfor %}
+
+
         </div>
     </div>
 
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
     <script>
+
+        {##########---фильтрация---##########}
+        function updateGraphs() {
+            const selectedGraph = document.getElementById("graph-selector").value;
+            const graphs = document.querySelectorAll(".single-graph");
+
+            graphs.forEach(graph => {
+                graph.style.display = (selectedGraph === "all" || graph.dataset.graph === selectedGraph) ? "block" : "none";
+            });
+        }
+
+        document.addEventListener("DOMContentLoaded", () => {
+            const graphs = document.querySelectorAll(".single-graph");
+            graphs.forEach(graph => graph.style.display = "none");
+            document.querySelector('#graph-selector').dispatchEvent(new Event('change'));
+        });
+        {#####################################}
+
 
         $('#upload-button').on('click', function () {
             // Сброс сообщений и состояния перед загрузкой нового файла
@@ -110,6 +122,7 @@
             });
         });
 
+
         $(document).ready(function () {
             // Загрузка файла
             $('#upload-button').on('click', function () {
@@ -135,6 +148,7 @@
                     }
                 });
             });
+
 
             // Генерация отчета
             $('#generate-report-button').on('click', function () {
@@ -177,22 +191,6 @@
                     $('#progress-bar-container').hide();
                 };
             });
-
-            // Обработчик выпадающего списка
-            $(document).on('click', '.dropdown-item', function (e) {
-                e.preventDefault();
-                var selectedGraph = $(this).data('graph');
-
-                if (selectedGraph === 'all') {
-                    $('.single-graph').show();
-                } else {
-                    $('.single-graph').hide();
-                    $('.single-graph[data-graph="' + selectedGraph + '"]').show();
-                }
-            });
-
-            // Инициализация Bootstrap dropdown
-            $('.dropdown-toggle').dropdown();
         });
     </script>
 {% endblock %}

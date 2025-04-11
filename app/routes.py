@@ -13,6 +13,7 @@ from flask import (
     stream_with_context
 )
 from flask_login import login_user, logout_user, current_user, login_required
+from flask import stream_with_context
 
 # Внутренние модули
 from app import db, bcrypt
@@ -142,7 +143,23 @@ def account():
 
 @main_bp.route('/load_csv', methods=['GET', 'POST'])
 def load_csv():
-    return render_template('load_csv.html')
+    # Проверяем, есть ли сохраненный filename в сессии
+    filename = session.get('saved_filename')
+    graphs = {}  # Инициализируем graphs по умолчанию
+    metrics = {}  # Инициализируем metrics по умолчанию
+
+    if filename:
+        # Если есть имя файла, обрабатываем его и получаем графики
+        try:
+            metrics, graphs = generate_report(filename)
+        except Exception as e:
+            print(f"Ошибка при создании отчета: {e}")
+            # Обрабатываем ошибку, например, показываем сообщение пользователю
+            # Можно вернуть пустые графики или сообщение об ошибке
+            graphs = {}
+            metrics = {}
+
+    return render_template('load_csv.html', graphs=graphs, metrics=metrics)
 
 
 @main_bp.route('/generate_report', methods=['POST'])
@@ -176,7 +193,6 @@ def generate_report():
     }
     return render_template('load_csv.html', graphs=graphs, metrics=metrics)
 
-from flask import stream_with_context
 
 @main_bp.route('/progress')
 def progress():
