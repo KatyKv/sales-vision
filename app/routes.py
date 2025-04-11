@@ -1,4 +1,3 @@
-# Стандартные библиотеки
 import os
 import logging
 import time
@@ -33,13 +32,12 @@ from .data_loader import process_csv
 
 # Создаем Blueprint вместо прямого использования app
 main_bp = Blueprint("main", __name__)
-
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s [%(levelname)s] %(message)s',
     handlers=[
-        logging.FileHandler("app.log"),   # лог в файл
-        logging.StreamHandler()           # лог в консоль
+        logging.FileHandler("app.log"),  # лог в файл
+        logging.StreamHandler()  # лог в консоль
     ]
 )
 
@@ -52,20 +50,26 @@ os.makedirs(RESULT_FOLDER, exist_ok=True)
 
 @main_bp.route('/upload', methods=['POST'])
 def upload():
-    session.pop('saved_filename', None)
+    session.pop('saved_filename', None)  # Удаляем сохраненное имя файла из сессии
     if 'file' not in request.files:
         return jsonify({'status': 'error', 'message': 'Файл не найден'})
 
     file = request.files['file']
-    result = process_csv(file, current_app.config['UPLOAD_FOLDER'])  # Используем current_app
 
-    if result.get('status') == 'success':
-        session['saved_filename'] = result['saved_as']
-        return jsonify(result)
+    if file.filename == '':
+        return jsonify({'status': 'error', 'message': 'Нет выбранного файла'})
 
-@main_bp.route('/download/<filename>')
-def download(filename):
-    return send_from_directory(current_app.config['UPLOAD_FOLDER'], filename)
+    try:
+        result = process_csv(file, current_app.config['UPLOAD_FOLDER'])  # Используем current_app
+        if result.get('status') == 'success':
+            session['saved_filename'] = result['saved_as']
+            return jsonify(result)
+        else:
+            return jsonify({'status': 'error', 'message': result.get('message', 'Произошла ошибка при обработке CSV')})
+
+    except Exception as e:
+        return jsonify({'status': 'error', 'message': str(e)})
+
 
 @main_bp.route("/")
 def home():
@@ -120,26 +124,81 @@ def edit():
         user.email = form.email.data
         db.session.commit()
         flash('Вы успешно изменили данные', 'success')
-        return redirect(url_for('main.home'))
+        return redirect(url_for('home'))
     return render_template('edit.html', form=form, title='Edit')
 
 
 @main_bp.route('/logout')
 def logout():
-    logout_user()  # завершает сессию пользователя (удаляет логин, куки и т.п.)
+    logout_user()
     return redirect(url_for('main.home'))
 
 
 @main_bp.route('/account')
-@login_required  # не даёт открыть маршрут, если пользователь не залогинен
+@login_required
 def account():
-    form = LoginForm()
-    return render_template('account.html', form=form, title='Account')
+    return render_template('account.html', username=current_user.username)
 
 
 @main_bp.route('/load_csv', methods=['GET', 'POST'])
 def load_csv():
     return render_template('load_csv.html')
+
+
+@main_bp.route('/generate_report', methods=['POST'])
+def generate_report():
+    filename = session.get('saved_filename')
+    if not filename:
+        return "Файл не найден. Сначала загрузите CSV.", 400
+    data_file_path = os.path.join(current_app.config['UPLOAD_FOLDER'], filename)
+    df = load_data(data_file_path)
+    metrics = calculate_metrics(df)
+    df_limit = min(10, len(df))
+    df_by_date = sales_by_date(df)
+    df_day_limit = min(10, len(df_by_date))
+    df_by_month = sales_by_month(df)
+    df_month_limit = min(10, len(df_by_month))
+    df_by_region = sales_by_region(df)
+    df_region_limit = min(10, len(df_by_region))
+    df_top_revenue = top_products(df, by='revenue')
+    df_top_quantity = top_products(df, by='quantity')
+    top_number = min(10, len(df_top_revenue))
+    df_avg_price = average_price_per_product(df)
+    avg_price_number = min(10, len(df_avg_price))
+
+    graphs = {
+        "Выручка по месяцам": plot_sales_trend(df_by_month),
+        "Выручка по дням": plot_sales_trend(df_by_date, 'day'),
+        "Топ продуктов по выручке": plot_sales_trend(df_by_date, 'day'),
+        "Топ продуктов по количеству": plot_top_products(df_top_quantity, 'quantity', top_number),
+        "Выручка по регионам": plot_sales_by_region(df_by_region),
+        "Средняя цена по товарам": plot_average_price_per_product(df_avg_price, top=avg_price_number)
+    }
+    return render_template('load_csv.html', graphs=graphs, metrics=metrics)
+
+from flask import stream_with_context
+
+@main_bp.route('/progress')
+def progress():
+    def generate():
+        for i in range(101):
+            time.sleep(0.1)  # Имитация задержки обработки
+            yield f"data: {i}\n\n"
+    return Response(stream_with_context(generate()), mimetype='text/event-stream')
+
+@main_bp.route('/download_report')
+def download_report():
+    try:
+        filename = request.args.get('filename')
+        if not filename:
+            return "Не указано имя файла", 400
+        file_path = os.path.join(RESULT_FOLDER, filename)
+        if not os.path.exists(file_path):
+            return "Файл отчета не найден", 404
+        return send_file(file_path, as_attachment=True)
+    except Exception as e:
+        return f"Ошибка скачивания: {str(e)}", 500
+
 
 # Временная функция для тестирования визуализации. Потом, наверное, не нужна
 def df_to_html(df, limit=10):
@@ -238,53 +297,3 @@ def visualizations():
         visualizations=visualizations_for_print,
         metrics=metrics
     )
-
-
-@main_bp.route('/generate_report', methods=['POST'])
-def generate_report():
-
-    filename = session.get('saved_filename')
-    if not filename:
-        return "Файл не найден. Сначала загрузите CSV.", 400
-
-    data_file_path = os.path.join(current_app.config['UPLOAD_FOLDER'], filename)
-    df = load_data(data_file_path)
-
-    metrics = calculate_metrics(df)
-
-    df_by_date = sales_by_date(df)
-    df_by_month = sales_by_month(df)
-    df_by_region = sales_by_region(df)
-    df_top = top_products(df)
-
-    graphs = {
-        "Выручка по месяцам": plot_sales_trend(df_by_month),
-        "Топ продуктов": plot_top_products(df_top),
-        "Топ продуктов по количеству": plot_top_products(df_top),
-        "Выручка по регионам": plot_sales_by_region(df_by_region)
-    }
-    return render_template('load_csv.html', graphs=graphs, metrics=metrics)
-
-@main_bp.route('/progress')
-def progress():
-    def generate():
-        for i in range(101):
-            time.sleep(0.1)  # Имитация задержки обработки
-            yield f"data: {i}\n\n"
-    return Response(stream_with_context(generate()), mimetype='text/event-stream')
-
-@main_bp.route('/download_report')
-def download_report():
-    try:
-        filename = request.args.get('filename')
-        if not filename:
-            return "Не указано имя файла", 400
-
-        file_path = os.path.join(RESULT_FOLDER, filename)
-        if not os.path.exists(file_path):
-            return "Файл отчета не найден", 404
-
-        return send_file(file_path, as_attachment=True)
-
-    except Exception as e:
-        return f"Ошибка скачивания: {str(e)}", 500

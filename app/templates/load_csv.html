@@ -27,7 +27,9 @@
         <div class="report-section" style="margin-top: 20px;">
             <button class="btn btn-success" id="generate-report-button">Произвести анализ данных</button>
             <div class="progress" style="margin-top: 10px; display: none;" id="progress-bar-container">
-                <div class="progress-bar" id="progress-bar" role="progressbar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">0%</div>
+                <div class="progress-bar" id="progress-bar" role="progressbar" style="width: 0%;" aria-valuenow="0"
+                     aria-valuemin="0" aria-valuemax="100">0%
+                </div>
             </div>
         </div>
 
@@ -36,10 +38,10 @@
                 <center><h2>Метрики</h2></center>
                 <table class="table table-striped table-bordered mx-auto" style="width: 50%;">
                     <thead>
-                        <tr>
-                            <th class="text-center">Название метрики</th>
-                            <th class="text-center">Значение</th>
-                        </tr>
+                    <tr>
+                        <th class="text-center">Название метрики</th>
+                        <th class="text-center">Значение</th>
+                    </tr>
                     </thead>
                     <tbody>
                         {% for metric_name, metric_data in metrics.items() %}
@@ -60,7 +62,8 @@
 
             {% if graphs %}
                 <div class="dropdown" style="margin-top: 20px; display: none;" id="dropdown-container">
-                    <button class="btn btn-secondary dropdown-toggle" type="button" id="dropdownMenuButton" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                    <button class="btn btn-secondary dropdown-toggle" type="button" id="dropdownMenuButton"
+                            data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
                         Выберите график
                     </button>
                     <div class="dropdown-menu" aria-labelledby="dropdownMenuButton">
@@ -86,9 +89,36 @@
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
     <script>
-        $(document).ready(function() {
+
+        $('#upload-button').on('click', function () {
+            // Сброс сообщений и состояния перед загрузкой нового файла
+            $('#messages').empty();
+            $('.graph-container').empty();
+            $('#dropdown-container').hide();
+
+            var file_data = $('#file').prop('files')[0];
+            var form_data = new FormData();
+            form_data.append('file', file_data);
+
+            $.ajax({
+                url: '/upload',
+                type: 'POST',
+                dataType: 'json',
+                contentType: false,
+                processData: false,
+                data: form_data,
+                success: function (response) {
+                    $('#messages').html('<div class="alert alert-' + (response.status === 'success' ? 'success' : 'danger') + '">' + response.message + '</div>');
+                },
+                error: function (xhr) {
+                    $('#messages').html('<div class="alert alert-danger">Произошла ошибка при загрузке файла.</div>');
+                }
+            });
+        });
+
+        $(document).ready(function () {
             // Загрузка файла
-            $('#upload-button').on('click', function() {
+            $('#upload-button').on('click', function () {
                 // Очистка данных перед загрузкой нового файла
                 $('.graph-container').empty();
                 $('#dropdown-container').hide();
@@ -103,17 +133,17 @@
                     contentType: false,
                     processData: false,
                     data: form_data,
-                    success: function(response) {
+                    success: function (response) {
                         $('#messages').html('<div class="alert alert-' + (response.status === 'success' ? 'success' : 'danger') + '">' + response.message + '</div>');
                     },
-                    error: function(xhr, status, error) {
+                    error: function (xhr, status, error) {
                         $('#messages').html('<div class="alert alert-danger">Произошла ошибка при загрузке файла.</div>');
                     }
                 });
             });
 
             // Генерация отчета
-            $('#generate-report-button').on('click', function() {
+            $('#generate-report-button').on('click', function () {
                 // Показываем индикатор выполнения
                 $('#progress-bar-container').show();
                 $('#progress-bar').width('0%').text('0%');
@@ -121,7 +151,7 @@
                 // Подключаемся к SSE для отслеживания прогресса
                 var source = new EventSource('/progress');
 
-                source.onmessage = function(event) {
+                source.onmessage = function (event) {
                     var progress = parseInt(event.data);
                     $('#progress-bar').width(progress + '%').text(progress + '%');
 
@@ -132,13 +162,13 @@
                         $.ajax({
                             url: '/generate_report',
                             type: 'POST',
-                            success: function(response) {
+                            success: function (response) {
                                 $('.graph-container').html($(response).find('.graph-container').html());
                                 $('.dropdown-toggle').dropdown();
                                 $('#dropdown-container').show();
                                 $('#progress-bar-container').hide();
                             },
-                            error: function(xhr, status, error) {
+                            error: function (xhr, status, error) {
                                 $('#messages').html('<div class="alert alert-danger">Произошла ошибка при формировании отчета.</div>');
                                 $('#progress-bar-container').hide();
                             }
@@ -146,7 +176,7 @@
                     }
                 };
 
-                source.onerror = function(error) {
+                source.onerror = function (error) {
                     console.error("SSE error:", error);
                     source.close();
                     $('#messages').html('<div class="alert alert-danger">Ошибка подключения к потоку прогресса.</div>');
@@ -155,7 +185,7 @@
             });
 
             // Обработчик выпадающего списка
-            $(document).on('click', '.dropdown-item', function(e) {
+            $(document).on('click', '.dropdown-item', function (e) {
                 e.preventDefault();
                 var selectedGraph = $(this).data('graph');
 
