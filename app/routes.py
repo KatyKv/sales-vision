@@ -1,6 +1,7 @@
 # Стандартные библиотеки
 import os
 import logging
+import time
 from datetime import datetime
 
 # Сторонние библиотеки
@@ -9,7 +10,8 @@ import xlsxwriter
 from flask import (
     Blueprint, render_template, request, jsonify,
     send_from_directory, current_app, session,
-    redirect, url_for, flash, send_file
+    redirect, url_for, flash, send_file, Response,
+    stream_with_context
 )
 from flask_login import login_user, logout_user, current_user, login_required
 
@@ -41,24 +43,25 @@ logging.basicConfig(
     ]
 )
 
-#############################
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 UPLOAD_FOLDER = os.path.join(BASE_DIR, 'uploads')
 RESULT_FOLDER = os.path.join(BASE_DIR, 'results')
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 os.makedirs(RESULT_FOLDER, exist_ok=True)
-###############################
+
 
 @main_bp.route('/upload', methods=['POST'])
 def upload():
+    session.pop('saved_filename', None)
     if 'file' not in request.files:
         return jsonify({'status': 'error', 'message': 'Файл не найден'})
 
     file = request.files['file']
     result = process_csv(file, current_app.config['UPLOAD_FOLDER'])  # Используем current_app
+
     if result.get('status') == 'success':
         session['saved_filename'] = result['saved_as']
-    return jsonify(result)
+        return jsonify(result)
 
 @main_bp.route('/download/<filename>')
 def download(filename):
@@ -98,10 +101,11 @@ def login():
         user = User.query.filter_by(email=form.email.data).first()
         if user and bcrypt.check_password_hash(user.password, form.password.data):
             login_user(user, remember=form.remember_me.data)
-            return redirect(url_for('main.load_csv'))  #  сделать форму загрузки csv
+            return redirect(url_for('main.load_csv'))  # сделать форму загрузки csv
         else:
             print('Введены неверные данные')
-    return render_template('login.html', form=form, title='Login')
+            return render_template('login.html', form=form, title='Login')
+
 
 @main_bp.route('/edit', methods=['GET', 'POST'])
 def edit():
@@ -125,6 +129,7 @@ def logout():
     logout_user()  # завершает сессию пользователя (удаляет логин, куки и т.п.)
     return redirect(url_for('main.home'))
 
+
 @main_bp.route('/account')
 @login_required  # не даёт открыть маршрут, если пользователь не залогинен
 def account():
@@ -134,7 +139,7 @@ def account():
 
 @main_bp.route('/load_csv', methods=['GET', 'POST'])
 def load_csv():
-        return render_template('load_csv.html')
+    return render_template('load_csv.html')
 
 # Временная функция для тестирования визуализации. Потом, наверное, не нужна
 def df_to_html(df, limit=10):
@@ -234,6 +239,7 @@ def visualizations():
         metrics=metrics
     )
 
+
 @main_bp.route('/generate_report', methods=['POST'])
 def generate_report():
 
@@ -254,10 +260,18 @@ def generate_report():
     graphs = {
         "Выручка по месяцам": plot_sales_trend(df_by_month),
         "Топ продуктов": plot_top_products(df_top),
-        "Топ продуктов по количеству": plot_top_products(df_top, 'quantity'),
+        "Топ продуктов по количеству": plot_top_products(df_top),
         "Выручка по регионам": plot_sales_by_region(df_by_region)
     }
     return render_template('load_csv.html', graphs=graphs, metrics=metrics)
+
+@main_bp.route('/progress')
+def progress():
+    def generate():
+        for i in range(101):
+            time.sleep(0.1)  # Имитация задержки обработки
+            yield f"data: {i}\n\n"
+    return Response(stream_with_context(generate()), mimetype='text/event-stream')
 
 @main_bp.route('/download_report')
 def download_report():
@@ -274,4 +288,3 @@ def download_report():
 
     except Exception as e:
         return f"Ошибка скачивания: {str(e)}", 500
-
