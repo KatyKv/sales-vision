@@ -34,14 +34,25 @@ os.makedirs(RESULT_FOLDER, exist_ok=True)
 
 @main_bp.route('/upload', methods=['POST'])
 def upload():
-    session.pop('saved_filename', None)
+    session.pop('saved_filename', None)  # Удаляем сохраненное имя файла из сессии
     if 'file' not in request.files:
         return jsonify({'status': 'error', 'message': 'Файл не найден'})
+
     file = request.files['file']
-    result = process_csv(file, current_app.config['UPLOAD_FOLDER'])  # Используем current_app
-    if result.get('status') == 'success':
-        session['saved_filename'] = result['saved_as']
-        return jsonify(result)
+
+    if file.filename == '':
+        return jsonify({'status': 'error', 'message': 'Нет выбранного файла'})
+
+    try:
+        result = process_csv(file, current_app.config['UPLOAD_FOLDER'])  # Используем current_app
+        if result.get('status') == 'success':
+            session['saved_filename'] = result['saved_as']
+            return jsonify(result)
+        else:
+            return jsonify({'status': 'error', 'message': result.get('message', 'Произошла ошибка при обработке CSV')})
+
+    except Exception as e:
+        return jsonify({'status': 'error', 'message': str(e)})
 
 
 @main_bp.route("/")
