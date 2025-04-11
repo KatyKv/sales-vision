@@ -131,7 +131,7 @@ def _preview_dates(df, column='date', limit=20):
         if count >= limit:
             break
 
-def calculate_metrics(df: pd.DataFrame) -> Dict[str, float]:
+def calculate_metrics(df: pd.DataFrame) -> Dict[str, Dict[str, Any]]:
     """Вычисление ключевых метрик продаж из DataFrame.
 
     Args:
@@ -148,16 +148,10 @@ def calculate_metrics(df: pd.DataFrame) -> Dict[str, float]:
         >>> print(f"Общая выручка: {metrics['total_revenue']:.2f}")
     """
     metrics = {
-        'total_revenue': df['revenue'].sum(),
-        'total_sales': df['quantity'].sum(),
-        'average_price': df['price'].mean(),
-        'median_price': df['price'].median()  # Добавлено
-    }
-    metrics_ru_names = {
-        'total_revenue': 'выручка',
-        'total_sales': 'объем продаж',
-        'average_price': 'средняя цена товара',
-        'median_price': 'медианная цена товара'  # Добавлено
+        'total_revenue': {'value': round(df['revenue'].sum(), 2), 'name_ru': 'Выручка'},
+        'total_sales': {'value': int(df['quantity'].sum()), 'name_ru': 'Объем продаж'},  # целое, не округляю
+        'average_price': {'value': round(df['price'].mean(), 2), 'name_ru': 'Средняя цена'},
+        'median_price': {'value': round(df['price'].median(), 2), 'name_ru': 'Медианная цена'}
     }
     return metrics
 
