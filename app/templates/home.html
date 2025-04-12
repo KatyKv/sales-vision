@@ -32,45 +32,42 @@
     .home-hero .btn {
         font-size: 1.1rem;
         padding: 0.6rem 1.5rem;
+        margin-bottom: 2rem;
     }
 
-    .demo-graph {
+    .carousel {
+        width: 100%;
+        max-width: 650px;
+        margin-top: 1rem;
+        margin-bottom: 2rem;
+    }
+
+    .carousel-item img {
+        width: 100%;
         max-width: 600px;
-        width: 80%;
-        margin-top: 2.5rem;
-        box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        height: auto;
         border-radius: 10px;
+        box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        margin: auto;
     }
 
     @media (max-width: 768px) {
-        .home-hero h1 {
-            font-size: 1.8rem;
-        }
-
-        .home-hero p {
-            font-size: 1rem;
-        }
-
-        .demo-graph {
-            width: 95%;
-            max-width: 90vw;
+        .carousel-item img {
+            max-width: 95%;
         }
     }
 
     @media (min-width: 769px) and (max-width: 991px) {
-        .demo-graph {
+        .carousel-item img {
             max-width: 450px;
-            width: 50%;
         }
     }
 
     @media (min-width: 992px) {
-        .demo-graph {
+        .carousel-item img {
             max-width: 380px;
-            width: 50%;
         }
     }
-
 </style>
 
 <div class="home-hero">
@@ -78,8 +75,18 @@
     <p>Загрузите файл и получите визуальный отчет за 10 секунд</p>
     <a href="{{ url_for('main.load_csv') }}" class="btn btn-primary">Загрузить файл</a>
 
-    <img src="{{ url_for('static', filename='img/demo.png') }}"
-         alt="Пример визуализации"
-         class="demo-graph">
+    <div id="demoCarousel" class="carousel slide" data-bs-ride="carousel">
+        <div class="carousel-inner">
+            <div class="carousel-item active">
+                <img src="{{ url_for('static', filename='img/demo.png') }}" class="d-block" alt="Демо 1">
+            </div>
+            <div class="carousel-item">
+                <img src="{{ url_for('static', filename='img/demo2.png') }}" class="d-block" alt="Демо 2">
+            </div>
+            <div class="carousel-item">
+                <img src="{{ url_for('static', filename='img/demo3.png') }}" class="d-block" alt="Демо 3">
+            </div>
+        </div>
+    </div>
 </div>
 {% endblock %}
