@@ -1,33 +1,85 @@
 {% extends 'base.html' %}
 
 {% block title %}
-Карусель
+Главная
 {% endblock %}
 
 {% block content %}
-<link rel="stylesheet" href="{{ url_for('static', filename='css/carusel.css') }}">
-<div id="carouselExampleInterval" class="carousel slide" data-bs-ride="carousel">
-    <div class="carousel-inner">
-        <div class="carousel-item active" data-bs-interval="10000">
-            <center><h1>{{for_beginning}}</h1></center>
-            <img src="https://winner-bagz.ru/upload/iblock/b9b/b9b64a43aa672fe162eaeaf2a14107ad.jpg" class="d-block w-100" alt="Аналитика продаж для начинающих">
-        </div>
-        <div class="carousel-item" data-bs-interval="2000">
-            <center><h1>{{ for_active }}</h1></center>
-            <img src="https://www.adventum.ru/articles/wp-content/uploads/2024/01/9.jpg" class="d-block w-100" alt="Аналитика продаж для действующих">
-        </div>
-        <div class="carousel-item">
-            <center><h1>{{ for_brends }}</h1></center>
-            <img src="https://cdn-edge.kwork.ru/pics/t3/11/11061984-1612510158.jpg" class="d-block w-100" alt="Аналитика продаж для брендов">
-        </div>
-    </div>
-    <button class="carousel-control-prev" type="button" data-bs-target="#carouselExampleInterval" data-bs-slide="prev">
-        <span class="carousel-control-prev-icon" aria-hidden="true"></span>
-        <span class="visually-hidden">Предыдущий</span>
-    </button>
-    <button class="carousel-control-next" type="button" data-bs-target="#carouselExampleInterval" data-bs-slide="next">
-        <span class="carousel-control-next-icon" aria-hidden="true"></span>
-        <span class="visually-hidden">Следующий</span>
-    </button>
+<style>
+    .home-hero {
+        min-height: calc(100vh - 160px);
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        text-align: center;
+        background-color: #f8f9fa;
+        padding: 2rem 1rem;
+    }
+
+    .home-hero h1 {
+        font-size: 2.5rem;
+        font-weight: bold;
+        margin-bottom: 1rem;
+    }
+
+    .home-hero p {
+        font-size: 1.2rem;
+        color: #6c757d;
+        margin-bottom: 2rem;
+    }
+
+    .home-hero .btn {
+        font-size: 1.1rem;
+        padding: 0.6rem 1.5rem;
+    }
+
+    .demo-graph {
+        max-width: 600px;
+        width: 80%;
+        margin-top: 2.5rem;
+        box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        border-radius: 10px;
+    }
+
+    @media (max-width: 768px) {
+        .home-hero h1 {
+            font-size: 1.8rem;
+        }
+
+        .home-hero p {
+            font-size: 1rem;
+        }
+
+        .demo-graph {
+            width: 95%;
+            max-width: 90vw;
+        }
+    }
+
+    @media (min-width: 769px) and (max-width: 991px) {
+        .demo-graph {
+            max-width: 450px;
+            width: 50%;
+        }
+    }
+
+    @media (min-width: 992px) {
+        .demo-graph {
+            max-width: 380px;
+            width: 50%;
+        }
+    }
+
+</style>
+
+<div class="home-hero">
+    <h1>Быстрая аналитика продаж из вашего CSV</h1>
+    <p>Загрузите файл и получите визуальный отчет за 10 секунд</p>
+    <a href="{{ url_for('main.load_csv') }}" class="btn btn-primary">Загрузить файл</a>
+
+    <img src="{{ url_for('static', filename='img/demo.png') }}"
+         alt="Пример визуализации"
+         class="demo-graph">
 </div>
 {% endblock %}
