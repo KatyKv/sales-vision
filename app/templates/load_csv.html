@@ -26,7 +26,11 @@
 
         <div class="report-section" style="margin-top: 20px; display: flex; justify-content: space-between; align-items: center;">
             <button class="btn btn-success" id="generate-report-button" style="display: none;">Произвести анализ данных</button>
-            <button class="btn btn-success" id="generate-report-excel-button" style="display: none;">Сформировать отчет в MS Excel</button>
+            <form action="{{ url_for('main.download_report') }}" method="GET">
+                <button class="btn btn-success" id="generate-report-excel-button" style="display: none;" type="submit">Сформировать отчет в MS Excel</button>
+            </form>
+
+
         </div>
 
         <div class="progress" style="margin-top: 10px; display: none;" id="progress-bar-container">
@@ -64,7 +68,7 @@
 
 
             <div class="col-md-3">
-                <select class="form-control" id="graph-selector" onchange="updateGraphs()">
+                <select class="form-control" id="graph-selector" style="display: none;" onchange="updateGraphs()">
                     <option value="all">Показать все</option>
                     {% for title, graph in graphs.items() %}
                         <option value="{{ title }}">{{ title }}</option>
@@ -142,7 +146,7 @@
                         // Показываем кнопки только при успешной загрузке
                         if (response.status === 'success') {
                             $('#generate-report-button').show();
-                            $('#generate-report-excel-button').show();
+                            {#$('#generate-report-excel-button').show();#}
                         } else {
                             // Скрываем кнопки, если загрузка была неудачной
                             $('#generate-report-button').hide();
@@ -207,6 +211,7 @@
                                 $('#dropdown-container').show();
                                 $('#progress-bar-container').hide();
                                 $('#dropdown-container').show();
+                                $('#generate-report-excel-button').show();
 
                             },
                             error: function (xhr, status, error) {
@@ -221,6 +226,9 @@
                     console.error("SSE error:", error);
                     source.close();
                     $('#messages').html('<div class="alert alert-danger">Ошибка подключения к потоку прогресса.</div>');
+                    // Скрываем кнопки в случае ошибки
+                    $('#generate-report-button').hide();
+                    $('#generate-report-excel-button').hide();
                     $('#progress-bar-container').hide();
                 };
             });
