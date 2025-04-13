@@ -56,50 +56,34 @@ def plot_sales_trend(df: pd.DataFrame,
         >>> plot_html = plot_sales_trend(df_monthly, 'month')
         >>> display(HTML(plot_html))  # для Jupyter
     """
-    # Выбор колонки для оси X
     period_col = 'month_str' if period == 'month' else 'day_date'
-
     fig = px.line(
         df, x=period_col, y='revenue', markers=True,
-        title=f'Динамика выручки по {"месяцам" if period == "month" else "дням"}',
         hover_data={period_col: '|Дата', 'revenue': '|'},
         labels={'revenue': 'Выручка'}
     )
     # Форматирование чисел
     max_value = df['revenue'].max()
     tick_values = np.linspace(0, max_value * 1.1, 5)
-
     if max_value >= 1000:
         # Для больших чисел: без дробной части
         tick_text = [f"{int(round(x)):,}".replace(',', ' ') for x in tick_values]
-        hover_format = '%{y:,}'.replace(',', ' ')  # Без .1f
     else:
         # Для маленьких чисел: 1 знак после запятой
         tick_text = [f"{x:,.1f}".replace(',', ' ').replace('.', ',') for x in tick_values]
-        hover_format = '%{y:,.1f}'.replace(',', ' ').replace('.', ',')
     # Общие настройки
     fig.update_layout(
-        # xaxis_title='Дата',
         yaxis_title='Выручка',
         yaxis_tickvals=tick_values,
         yaxis_ticktext=tick_text,
         yaxis_range = [df['revenue'].min() * 0.9,  # 10% "воздуха" снизу
                         df['revenue'].max() * 1.1]  # 10% сверху
     )
-
-    # fig.update_xaxes(
-    #     tickformat='%Y-%m-%d',
-    #     hoverformat='%Y-%m-%d'
-    # )
-    #
-    # fig.update_traces(
-    #     hovertemplate=f'<b>Дата</b>: %{{x|%Y-%m-%d}}<br><b>Выручка</b>: {hover_format}<extra></extra>'
-    # )
     # Специфичные настройки для разных периодов
     if period == 'month':
         fig.update_layout(
             xaxis_title='Месяц',
-            xaxis_type='category'  # Важно! Отключаем автоматическую временную шкалу
+            xaxis_type='category'  # Важно применить категориальный тип, чтобы отключить автоматическую временную шкалу
         )
         fig.update_traces(
             hovertemplate='<b>Месяц</b>: %{x}<br><b>Выручка</b>: %{y:,}<extra></extra>'.replace(',', ' ')
@@ -113,7 +97,6 @@ def plot_sales_trend(df: pd.DataFrame,
         fig.update_traces(
             hovertemplate='<b>Дата</b>: %{x|%Y-%m-%d}<br><b>Выручка</b>: %{y:,}<extra></extra>'.replace(',', ' ')
         )
-
     return pio.to_html(fig, full_html=False)
 
 
@@ -121,75 +104,73 @@ def plot_top_products(df: pd.DataFrame,
                       by: Literal['revenue', 'quantity']='revenue',
                       top: int=10) -> str:
     """Визуализирует топ товаров в виде горизонтальной гистограммы.
-
     Args:
         df: DataFrame с товарами в индексе и колонками:
             - 'revenue' (суммарная выручка по товару)
             - 'quantity' (количество продаж)
         by: Критерий сортировки ('revenue' или 'quantity')
         top: Количество отображаемых товаров
-
     Returns:
         str: HTML-код интерактивного графика
-
     Note:
         Рекомендуется использовать с DataFrame из top_products()
-
     Example:
         >>> top_df = top_products(raw_df, by='revenue', top_n=15)
         >>> plot_html = plot_top_products(top_df, top=15)
     """
-    # Сортировка данных и выбор топ-10 (или др.)
+    # Сортировка данных и выбор топ-N
     df = df.sort_values(by, ascending=False).head(top)
-
-    # Создаем горизонтальную гистограмму
+    # Форматирование чисел в данных ДО построения графика
+    if by == 'quantity':
+        df[by] = df[by].round(0).astype(int)
+    else:
+        df[by] = df[by].round(1 if df[by].max() < 1000 else 0)
+    # Горизонтальная гистограмма
     fig = px.bar(df, y=df.index, x=by, orientation='h',
-                 title=f'ТОП-{top} товаров по {"выручке" if by == "revenue" else "продажам"}',
-                 labels={by: 'Значение', 'index': 'Товар'},
+                 labels={by: 'Выручка' if by == 'revenue' else 'Количество', 'index': 'Товар'},
                  color=df.index,  # цвет для различения товаров
                  color_discrete_sequence=px.colors.sequential.Viridis)
+    # Настройка подсказок
+    hover_template = (
+            '<b>Товар</b>: %{y}<br>'
+            f'<b>{"Выручка" if by == "revenue" else "Количество"}</b>: '
+            '%{x:,}' + ('' if by == 'quantity' else '.1f' if df[by].max() < 1000 else '') +
+            '<extra></extra>'
+    ).replace(',', ' ').replace('.', ',')
+    fig.update_traces(hovertemplate=hover_template)
 
-    # Обновление макета для добавления сетки по оси Y
-    fig.update_layout(yaxis_title='Товар', xaxis_title='Значение',
-                      yaxis=dict(categoryorder='total ascending'))
+    # Общие настройки
+    fig.update_layout(
+        yaxis_title='Товар',
+        xaxis_title="Выручка" if by == "revenue" else "Количество",
+        yaxis=dict(categoryorder='total ascending'),
+        legend_title_text = 'Товар'
+    )
     return pio.to_html(fig, full_html=False)
 
 
-def plot_sales_by_region(df: pd.DataFrame, threshold: float = 0.05) -> str:
+def plot_sales_by_region(df: pd.DataFrame) -> str:
     """Строит круговую диаграмму с группировкой мелких регионов в 'Другие'.
 
     Args:
         df: DataFrame с колонками ['region', 'revenue']
-        threshold: Порог (0-1) для объединения в 'Другие' (по умолчанию 5%)
 
     Returns:
         str: HTML-код графика
     """
-    # Сортируем по убыванию выручки
+    # Сортировка по убыванию выручки
     df = df.sort_values('revenue', ascending=False)
 
-    # Рассчитываем долю выручки
+    # Доля выручки
     total = df['revenue'].sum()
     df['share'] = df['revenue'] / total
 
-    # Группируем регионы ниже порога
-    others = df[df['share'] < threshold]
-    main = df[df['share'] >= threshold]
 
-    if len(others) > 0:
-        others_sum = others['revenue'].sum()
-        others_share = others_sum / total
-        main = pd.concat([
-            main,
-            pd.DataFrame([{'region': 'Другие', 'revenue': others_sum, 'share': others_share}])
-        ])
-
-    # Строим диаграмму
-    fig = px.pie(main, names='region', values='revenue',
-                 title='Распределение выручки по регионам',
+    # Диаграмма
+    fig = px.pie(df, names='region', values='revenue',
                  hover_data=['share'])
 
-    # Форматируем подписи
+    # Форматирование подписей
     fig.update_traces(
         textposition='inside',
         texttemplate='%{label}<br>%{percent:.1%}',
@@ -221,10 +202,47 @@ def plot_average_price_per_product(df: pd.DataFrame, top: int = 10) -> str:
         >>> plot_html = plot_average_price_per_product(df_avg_prices, top=10)
         >>> display(HTML(plot_html))  # для Jupyter
     """
-    fig = px.bar(df.head(top), x='name', y='average_price', title='Средняя цена по товарам')
-    fig.update_layout(xaxis_title='Товар', yaxis_title='Средняя цена')
-    return pio.to_html(fig, full_html=False)
+    # Подготовка данных
+    df = df.head(top).copy()
+    df['average_price'] = df['average_price'].round(2)
 
+    # Построение графика
+    fig = px.bar(
+        df,
+        x='name',
+        y='average_price',
+        labels={'name': 'Товар', 'average_price': 'Средняя цена'},
+        color='name',
+        color_discrete_sequence=px.colors.sequential.Viridis
+    )
+
+    # Форматирование чисел
+    max_price = df['average_price'].max()
+    if max_price >= 1000:
+        yaxis_tickformat = ',.0f'
+        hover_format = ',.0f'
+    else:
+        yaxis_tickformat = ',.2f'
+        hover_format = ',.2f'
+
+    # Настройка подсказок
+    fig.update_traces(
+        hovertemplate=(
+            '<b>Товар</b>: %{x}<br>'
+            '<b>Средняя цена</b>: %{y:,.2f}<extra></extra>'
+        ).replace(',', ' ').replace('.', ',')
+    )
+
+    # Общие настройки
+    fig.update_layout(
+        xaxis_title='Товар',
+        yaxis_title='Средняя цена',
+        showlegend=False,
+        yaxis_tickformat=yaxis_tickformat.replace('.', ','),
+        separators=', '
+    )
+
+    return pio.to_html(fig, full_html=False)
 
 def is_enough_data(df, date_col='ym'):
     return df[date_col].nunique() > 1

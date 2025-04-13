@@ -161,7 +161,9 @@ def generate_report():
     avg_price_number = min(10, len(df_avg_price))
 
     graphs = {
-        "Выручка по месяцам": plot_sales_trend(df_by_month),
+        "Выручка по месяцам": (plot_sales_trend(df_by_month)
+                if is_enough_data(df_by_month, 'month_str')
+                else f"Невозможно построить график по месяцам. Данные содержат только один месяц. Общая выручка за этот месяц: {metrics['total_revenue']['value']}."),
         "Выручка по дням": plot_sales_trend(df_by_date, 'day'),
         "Топ продуктов по выручке": plot_top_products(df_top_revenue, top=top_number),
         "Топ продуктов по количеству": plot_top_products(df_top_quantity, 'quantity', top_number),
