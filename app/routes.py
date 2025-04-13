@@ -222,14 +222,14 @@ def download_report():
         df_avg_price = average_price_per_product(df)
 
         # Изменим вызов функций plot_... чтобы они возвращали bytes
-        graphics = {
-            "Выручка по месяцам": plot_sales_trend(df_by_month, image_format="png"),
-            "Выручка по дням": plot_sales_trend(df_by_date, 'day', image_format="png"),
-            "Топ продуктов по выручке": plot_top_products(df_top_revenue, top=10, image_format="png"),
-            "Топ продуктов по количеству": plot_top_products(df_top_quantity, 'quantity', top=10, image_format="png"),
-            "Выручка по регионам": plot_sales_by_region(df_by_region, image_format="png"),
-            "Средняя цена по товарам": plot_average_price_per_product(df_avg_price, top=10, image_format="png")
-        }
+        # graphics = {
+        #     "Выручка по месяцам": plot_sales_trend(df_by_month, image_format="png"),
+        #     "Выручка по дням": plot_sales_trend(df_by_date, 'day', image_format="png"),
+        #     "Топ продуктов по выручке": plot_top_products(df_top_revenue, top=10, image_format="png"),
+        #     "Топ продуктов по количеству": plot_top_products(df_top_quantity, 'quantity', top=10, image_format="png"),
+        #     "Выручка по регионам": plot_sales_by_region(df_by_region, image_format="png"),
+        #     "Средняя цена по товарам": plot_average_price_per_product(df_avg_price, top=10, image_format="png")
+        # }
 
         # Создаем Excel-файл в памяти
         excel_file = io.BytesIO()
@@ -252,11 +252,11 @@ def download_report():
                 metrics_sheet.write(1, col, metrics[key])
 
         # Создаем листы для графиков
-        for sheet_name, graph_bytes in graphics.items():
-            worksheet = workbook.add_worksheet(sheet_name)
-            # Вставляем графики
-            imgdata = io.BytesIO(graph_bytes)
-            worksheet.insert_image('A1', sheet_name, {'image_data': imgdata})
+        # for sheet_name, graph_bytes in graphics.items():
+        #     worksheet = workbook.add_worksheet(sheet_name)
+        #     # Вставляем графики
+        #     imgdata = io.BytesIO(graph_bytes)
+        #     worksheet.insert_image('A1', sheet_name, {'image_data': imgdata})
 
         workbook.close()
         excel_file.seek(0)
