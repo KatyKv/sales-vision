@@ -11,18 +11,18 @@
     <div class="metrics-container">
         <h2>Ключевые метрики</h2>
         <div class="metrics-grid">
-            <div class="metric-card">
-                <div class="metric-title">Общая выручка</div>
-                <div class="metric-value">{{ "%.2f"|format(metrics['total_revenue']) }}</div>
-            </div>
-            <div class="metric-card">
-                <div class="metric-title">Общий объем продаж</div>
-                <div class="metric-value">{{ "%.0f"|format(metrics['total_sales']) }}</div>
-            </div>
-            <div class="metric-card">
-                <div class="metric-title">Средняя цена товара</div>
-                <div class="metric-value">{{ "%.2f"|format(metrics['average_price']) }}</div>
-            </div>
+            {% for metric_name, metric_data in metrics.items() %}
+                <tr class="text-center">
+                    <td>{{ metric_data.name_ru }}</td>
+                    <td>
+                        {% if metric_data.value is integer %}
+                            {{ "{:,}".format(metric_data.value).replace(",", " ") }}  <!-- Целые-->
+                        {% else %}
+                            {{ "{:,.2f}".format(metric_data.value).replace(",", " ") }}  <!-- Дробные -->
+                        {% endif %}
+                    </td>
+                </tr>
+            {% endfor %}
         </div>
     </div>
 

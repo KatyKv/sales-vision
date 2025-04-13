@@ -32,6 +32,7 @@
 
 from typing import Literal
 
+import numpy as np
 import pandas as pd
 import plotly.express as px
 import plotly.io as pio
@@ -39,6 +40,7 @@ import plotly.io as pio
 def plot_sales_trend(df: pd.DataFrame,
                      period: Literal['day', 'month']='month') -> str:
     """Строит линейный график динамики выручки за период.
+    Принимает УЖЕ АГРЕГИРОВАННЫЕ данные (либо по дням, либо по месяцам).
 
     Args:
         df: DataFrame с колонками:
@@ -54,11 +56,66 @@ def plot_sales_trend(df: pd.DataFrame,
         >>> plot_html = plot_sales_trend(df_monthly, 'month')
         >>> display(HTML(plot_html))  # для Jupyter
     """
-    period_col = 'ym' if period=='month' else 'date'
-    fig = px.line(df, x=period_col, y='revenue', markers=True,
-                  title=f'Динамика выручки по {"месяцам" if period=="month" else "дням"}')
-    fig.update_layout(xaxis_title='Дата', yaxis_title='Выручка')
+    # Выбор колонки для оси X
+    period_col = 'month_str' if period == 'month' else 'day_date'
+
+    fig = px.line(
+        df, x=period_col, y='revenue', markers=True,
+        title=f'Динамика выручки по {"месяцам" if period == "month" else "дням"}',
+        hover_data={period_col: '|Дата', 'revenue': '|'},
+        labels={'revenue': 'Выручка'}
+    )
+    # Форматирование чисел
+    max_value = df['revenue'].max()
+    tick_values = np.linspace(0, max_value * 1.1, 5)
+
+    if max_value >= 1000:
+        # Для больших чисел: без дробной части
+        tick_text = [f"{int(round(x)):,}".replace(',', ' ') for x in tick_values]
+        hover_format = '%{y:,}'.replace(',', ' ')  # Без .1f
+    else:
+        # Для маленьких чисел: 1 знак после запятой
+        tick_text = [f"{x:,.1f}".replace(',', ' ').replace('.', ',') for x in tick_values]
+        hover_format = '%{y:,.1f}'.replace(',', ' ').replace('.', ',')
+    # Общие настройки
+    fig.update_layout(
+        # xaxis_title='Дата',
+        yaxis_title='Выручка',
+        yaxis_tickvals=tick_values,
+        yaxis_ticktext=tick_text,
+        yaxis_range = [df['revenue'].min() * 0.9,  # 10% "воздуха" снизу
+                        df['revenue'].max() * 1.1]  # 10% сверху
+    )
+
+    # fig.update_xaxes(
+    #     tickformat='%Y-%m-%d',
+    #     hoverformat='%Y-%m-%d'
+    # )
+    #
+    # fig.update_traces(
+    #     hovertemplate=f'<b>Дата</b>: %{{x|%Y-%m-%d}}<br><b>Выручка</b>: {hover_format}<extra></extra>'
+    # )
+    # Специфичные настройки для разных периодов
+    if period == 'month':
+        fig.update_layout(
+            xaxis_title='Месяц',
+            xaxis_type='category'  # Важно! Отключаем автоматическую временную шкалу
+        )
+        fig.update_traces(
+            hovertemplate='<b>Месяц</b>: %{x}<br><b>Выручка</b>: %{y:,}<extra></extra>'.replace(',', ' ')
+        )
+    else:
+        fig.update_layout(xaxis_title='Дата')
+        fig.update_xaxes(
+            tickformat='%Y-%m-%d',
+            hoverformat='%Y-%m-%d'
+        )
+        fig.update_traces(
+            hovertemplate='<b>Дата</b>: %{x|%Y-%m-%d}<br><b>Выручка</b>: %{y:,}<extra></extra>'.replace(',', ' ')
+        )
+
     return pio.to_html(fig, full_html=False)
+
 
 def plot_top_products(df: pd.DataFrame,
                       by: Literal['revenue', 'quantity']='revenue',

@@ -184,7 +184,12 @@ def standardize_columns(csv_data):
         for original_key in row:
             lower_key = original_key.lower().strip()
             if lower_key in COLUMN_NAMES:
-                new_row[COLUMN_NAMES[lower_key]] = row[original_key].strip()
+                # Если это поле даты, выбрать "Date" а не "Time"
+                if COLUMN_NAMES[lower_key] == 'date':
+                    if 'date' not in new_row or original_key.lower().strip() == 'date':
+                        new_row['date'] = row[original_key].strip()
+                else:
+                    new_row[COLUMN_NAMES[lower_key]] = row[original_key].strip()
         standardized_data.append(new_row)
     return standardized_data
 

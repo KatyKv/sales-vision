@@ -226,8 +226,10 @@ def visualizations():
     logging.info('Файл успешно загружен')
 
     metrics = calculate_metrics(df)
-    for key, value in metrics.items():
-        logging.info(f"{key}: {value:.2f}")
+    for key, value_dict in metrics.items():
+        value = value_dict['value']
+        logging.info(f"{key}: {value:.2f}") \
+            if isinstance(value, float) else logging.info(f"{key}: {value}")
 
     # Подготовка данных для таблиц и графиков
     df_limit = min(10, len(df))
@@ -255,7 +257,7 @@ def visualizations():
             "table": df_to_html(df_by_month, df_month_limit),
             "graph": (
                 plot_sales_trend(df_by_month)
-                if is_enough_data(df_by_month, 'ym')
+                if is_enough_data(df_by_month, 'month_str')
                 else "<p>Недостаточно данных для графика "
                      "(нужно более 1 месяца)</p>"
             )
@@ -265,7 +267,7 @@ def visualizations():
             "table": df_to_html(df_by_date, df_day_limit),
             "graph": (
                 plot_sales_trend(df_by_date, 'day')
-                if is_enough_data(df_by_date, 'date')
+                if is_enough_data(df_by_date, 'day_date')
                 else "<p>Недостаточно данных для графика "
                      "(нужно более 1 дня)</p>"
             )

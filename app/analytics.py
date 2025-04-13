@@ -96,26 +96,35 @@ def load_data(filepath: str) -> pd.DataFrame:
     try:
         df = pd.read_csv(filepath)
         logger.info(f'Успешно загружено {len(df)} строк')
+        logger.info(f'Первые 3 строки данных:\n{df.head(3)}')
     except Exception as e:
         logger.error(f"Ошибка загрузки файла: {e}")
         raise
     numeric_columns = ['price', 'quantity']
     for col in numeric_columns:
         df[col] = pd.to_numeric(df[col], errors='coerce')
-
     if 'revenue' not in df.columns:
         df['revenue'] = df['quantity'] * df['price']
     else:
         df['revenue'] = pd.to_numeric(df['revenue'], errors='coerce')
-    df['date'] = df['date'].apply(check_date)
-    df['ym'] = df['date'].dt.to_period('M')
 
+
+    df['date'] = df['date'].apply(check_date)
+    # Проверка на успешное преобразование дат
+    if df['date'].isnull().any():
+        logger.warning("Некоторые даты не были распознаны правильно")
+    # df['ym'] = df['date'].dt.to_period('M')
+    # Создание производных колонок
+    df['day_date'] = df['date'].dt.normalize()  # Для дневных данных
+    df['month_str'] = df['date'].dt.strftime('%Y-%m')  # Для месячных
+    # df['ym'] = df['date'].dt.to_period('M')  # Дополнительная колонка для совместимости
     _preview_dates(df)
+    logger.info(f'Первые 3 строки после обработки:\n{df.head(3)}')
 
     return df
 
 
-def _preview_dates(df, column='date', limit=20):
+def _preview_dates(df, column='date', limit=10):
     """ТЕСТОВАЯ ВРЕМЕННАЯ ФУНКЦИЯ проверки загруженной даты"""
     print(f"{'Исходная строка':<25} | {'Обработанная дата'}")
     print("-" * 50)
@@ -170,7 +179,7 @@ def sales_by_date(df: pd.DataFrame) -> pd.DataFrame:
         >>> daily_sales = sales_by_date(df)
         >>> print(daily_sales.head())
     """
-    return df.groupby('date').agg({'revenue': 'sum', 'quantity': 'sum'}).reset_index()
+    return df.groupby('day_date').agg({'revenue': 'sum', 'quantity': 'sum'}).reset_index()
 
 
 def sales_by_month(df: pd.DataFrame) -> pd.DataFrame:
@@ -187,8 +196,8 @@ def sales_by_month(df: pd.DataFrame) -> pd.DataFrame:
         >>> monthly_sales = sales_by_month(df)
         >>> print(monthly_sales.head())
     """
-    result = df.groupby('ym').agg({'revenue': 'sum', 'quantity': 'sum'}).reset_index()
-    result['ym'] = result['ym'].dt.to_timestamp()  # преобразование Period в Timestamp
+    result = df.groupby('month_str').agg({'revenue': 'sum', 'quantity': 'sum'}).reset_index()
+    # result['month_str'] = result['month_str'].dt.to_timestamp()  # преобразование Period в Timestamp
     return result
 
 def top_products(
