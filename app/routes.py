@@ -151,13 +151,9 @@ def generate_report():
     data_file_path = os.path.join(current_app.config['UPLOAD_FOLDER'], filename)
     df = load_data(data_file_path)
     metrics = calculate_metrics(df)
-    df_limit = min(10, len(df))
     df_by_date = sales_by_date(df)
-    df_day_limit = min(10, len(df_by_date))
     df_by_month = sales_by_month(df)
-    df_month_limit = min(10, len(df_by_month))
     df_by_region = sales_by_region(df)
-    df_region_limit = min(10, len(df_by_region))
     df_top_revenue = top_products(df, by='revenue')
     df_top_quantity = top_products(df, by='quantity')
     top_number = min(10, len(df_top_revenue))
@@ -167,7 +163,7 @@ def generate_report():
     graphs = {
         "Выручка по месяцам": plot_sales_trend(df_by_month),
         "Выручка по дням": plot_sales_trend(df_by_date, 'day'),
-        "Топ продуктов по выручке": plot_sales_trend(df_by_date, 'day'),
+        "Топ продуктов по выручке": plot_top_products(df_top_revenue, top=top_number),
         "Топ продуктов по количеству": plot_top_products(df_top_quantity, 'quantity', top_number),
         "Выручка по регионам": plot_sales_by_region(df_by_region),
         "Средняя цена по товарам": plot_average_price_per_product(df_avg_price, top=avg_price_number)
