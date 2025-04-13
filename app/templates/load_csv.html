@@ -44,12 +44,18 @@
                     </tr>
                     </thead>
                     <tbody>
-                    {% for key, value in metrics.items() %}
-                        <tr class="text-center">
-                            <td>{{ key }}</td>
-                            <td>{{ value }}</td>
-                        </tr>
-                    {% endfor %}
+                        {% for metric_name, metric_data in metrics.items() %}
+                            <tr class="text-center">
+                                <td>{{ metric_data.name_ru }}</td>
+                                <td>
+                                    {% if metric_data.value is integer %}
+                                        {{ "{:,}".format(metric_data.value).replace(",", " ") }}  <!-- Целые-->
+                                    {% else %}
+                                        {{ "{:,.2f}".format(metric_data.value).replace(",", " ") }}  <!-- Дробные -->
+                                    {% endif %}
+                                </td>
+                            </tr>
+                        {% endfor %}
                     </tbody>
                 </table>
             {% endif %}
