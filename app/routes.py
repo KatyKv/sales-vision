@@ -28,7 +28,7 @@ from .analytics import (
 )
 from .visualization import (
     plot_sales_trend, plot_top_products, plot_sales_by_region,
-    plot_average_price_per_product, is_enough_data, plot_sales_trend_png
+    plot_average_price_per_product, is_enough_data
 )
 from .data_loader import process_csv
 
