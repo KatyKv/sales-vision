@@ -221,14 +221,15 @@ def download_report():
         df_top_quantity = top_products(df, by='quantity')
         df_avg_price = average_price_per_product(df)
 
-        # graphics = {
-        #     "Выручка по месяцам": plot_sales_trend_png(df_by_month),
-        #     "Выручка по дням": plot_sales_trend(df_by_date, 'day'),
-        #     "Топ продуктов по выручке": plot_top_products(df_top_revenue, top=10),
-        #     "Топ продуктов по количеству": plot_top_products(df_top_quantity, 'quantity', top=10),
-        #     "Выручка по регионам": plot_sales_by_region(df_by_region),
-        #     "Средняя цена по товарам": plot_average_price_per_product(df_avg_price, top=10)
-        # }
+        # Изменим вызов функций plot_... чтобы они возвращали bytes
+        graphics = {
+            "Выручка по месяцам": plot_sales_trend(df_by_month, image_format="png"),
+            "Выручка по дням": plot_sales_trend(df_by_date, 'day', image_format="png"),
+            "Топ продуктов по выручке": plot_top_products(df_top_revenue, top=10, image_format="png"),
+            "Топ продуктов по количеству": plot_top_products(df_top_quantity, 'quantity', top=10, image_format="png"),
+            "Выручка по регионам": plot_sales_by_region(df_by_region, image_format="png"),
+            "Средняя цена по товарам": plot_average_price_per_product(df_avg_price, top=10, image_format="png")
+        }
 
         # Создаем Excel-файл в памяти
         excel_file = io.BytesIO()
@@ -245,20 +246,17 @@ def download_report():
 
         # Записываем значения метрик
         for col, key in enumerate(metrics_keys):
-            # Предполагаем, что значения в metrics - это строки или числа
-            # Если значение - это словарь, нужно указать, какое поле из словаря использовать
             if isinstance(metrics[key], dict):
-                # Пример: если в словаре есть поле 'value', используем его
                 metrics_sheet.write(1, col, metrics[key].get('value', 'N/A'))
             else:
                 metrics_sheet.write(1, col, metrics[key])
 
         # Создаем листы для графиков
-        # for sheet_name, graph_bytes in graphics.items():
-        #     worksheet = workbook.add_worksheet(sheet_name)
-        #     # Вставляем графики
-        #     imgdata = io.BytesIO(graph_bytes)
-        #     worksheet.insert_image('A1', sheet_name, {'image_data': imgdata})
+        for sheet_name, graph_bytes in graphics.items():
+            worksheet = workbook.add_worksheet(sheet_name)
+            # Вставляем графики
+            imgdata = io.BytesIO(graph_bytes)
+            worksheet.insert_image('A1', sheet_name, {'image_data': imgdata})
 
         workbook.close()
         excel_file.seek(0)
@@ -270,7 +268,6 @@ def download_report():
             download_name='report.xlsx',
             as_attachment=True
         )
-
     except Exception as e:
         return f"Ошибка скачивания: {str(e)}", 500
 

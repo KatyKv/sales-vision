@@ -216,6 +216,8 @@
                             },
                             error: function (xhr, status, error) {
                                 $('#messages').html('<div class="alert alert-danger">Произошла ошибка при формировании отчета.</div>');
+                                $('#generate-report-button').hide();
+                                $('#generate-report-excel-button').hide();
                                 $('#progress-bar-container').hide();
                             }
                         });

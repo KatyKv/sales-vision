@@ -30,14 +30,15 @@
 - Сохранить в файл для статичной визуализации
 """
 
-from typing import Literal
-
+from typing import Union, Literal
 import pandas as pd
 import plotly.express as px
 import plotly.io as pio
 
+
 def plot_sales_trend(df: pd.DataFrame,
-                     period: Literal['day', 'month']='month') -> str:
+                     period: Literal['day', 'month'] = 'month',
+                     image_format: str = None) -> Union[str, bytes]:
     """Строит линейный график динамики выручки за период.
 
     Args:
@@ -58,11 +59,16 @@ def plot_sales_trend(df: pd.DataFrame,
     fig = px.line(df, x=period_col, y='revenue', markers=True,
                   title=f'Динамика выручки по {"месяцам" if period=="month" else "дням"}')
     fig.update_layout(xaxis_title='Дата', yaxis_title='Выручка')
-    return pio.to_html(fig, full_html=False)
+
+    if image_format:
+        return pio.to_image(fig, format=image_format)
+    else:
+        return pio.to_html(fig, full_html=False)
 
 def plot_top_products(df: pd.DataFrame,
-                      by: Literal['revenue', 'quantity']='revenue',
-                      top: int=10) -> str:
+                      by: Literal['revenue', 'quantity'] = 'revenue',
+                      top: int = 10,
+                      image_format: str = None) -> Union[str, bytes]:
     """Визуализирует топ товаров в виде горизонтальной гистограммы.
 
     Args:
@@ -95,10 +101,16 @@ def plot_top_products(df: pd.DataFrame,
     # Обновление макета для добавления сетки по оси Y
     fig.update_layout(yaxis_title='Товар', xaxis_title='Значение',
                       yaxis=dict(categoryorder='total ascending'))
-    return pio.to_html(fig, full_html=False)
+
+    if image_format:
+        return pio.to_image(fig, format=image_format)
+    else:
+        return pio.to_html(fig, full_html=False)
 
 
-def plot_sales_by_region(df: pd.DataFrame, threshold: float = 0.05) -> str:
+def plot_sales_by_region(df: pd.DataFrame,
+                         threshold: float = 0.05,
+                         image_format: str = None) -> Union[str, bytes]:
     """Строит круговую диаграмму с группировкой мелких регионов в 'Другие'.
 
     Args:
@@ -144,10 +156,15 @@ def plot_sales_by_region(df: pd.DataFrame, threshold: float = 0.05) -> str:
         uniformtext_mode='hide'
     )
 
-    return pio.to_html(fig, full_html=False)
+    if image_format:
+        return pio.to_image(fig, format=image_format)
+    else:
+        return pio.to_html(fig, full_html=False)
 
 
-def plot_average_price_per_product(df: pd.DataFrame, top: int = 10) -> str:
+def plot_average_price_per_product(df: pd.DataFrame,
+                                   top: int = 10,
+                                   image_format: str = None) -> Union[str, bytes]:
     """Строит барчарт по средней цене товаров.
 
     Args:
@@ -166,7 +183,11 @@ def plot_average_price_per_product(df: pd.DataFrame, top: int = 10) -> str:
     """
     fig = px.bar(df.head(top), x='name', y='average_price', title='Средняя цена по товарам')
     fig.update_layout(xaxis_title='Товар', yaxis_title='Средняя цена')
-    return pio.to_html(fig, full_html=False)
+
+    if image_format:
+        return pio.to_image(fig, format=image_format)
+    else:
+        return pio.to_html(fig, full_html=False)
 
 
 def is_enough_data(df, date_col='ym'):
