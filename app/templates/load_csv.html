@@ -5,132 +5,124 @@
 {% endblock %}
 
 {% block content %}
-    <div class="container">
-        <div class="upload-form">
+    <div class="container py-4" style="font-family: 'Manrope', sans-serif;">  <!-- Заменили шрифт на Manrope -->
+
+        <!-- Блок формы загрузки файла -->
+        <div class="upload-form mb-4">
             <h2>Загрузка и анализ CSV</h2>
             <form id="upload-form" enctype="multipart/form-data">
-                <div class="form-group">
+                <div class="form-group mb-3">
                     <label for="file">Выберите CSV файл:</label>
                     <input type="file" class="form-control-file" id="file" name="file">
                 </div>
-                <p></p>
-                <button type="button" class="btn btn-primary" id="upload-button">Загрузить файл</button>
-                <p></p>
+                <!-- Скрытая кнопка загрузки (отображается только при выборе файла) -->
+                <button type="button" class="btn btn-primary" id="upload-button" style="display: none;">Загрузить файл</button>
             </form>
-            <div class="messages" id="messages">
+            <div class="messages mt-3" id="messages">
                 {% if error %}
                     <div class="alert alert-danger">{{ error }}</div>
                 {% endif %}
             </div>
         </div>
 
-        <div class="report-section" style="margin-top: 20px; display: flex; justify-content: space-between; align-items: center;">
-            <button class="btn btn-success" id="generate-report-button" style="display: none;">Произвести анализ данных</button>
-            <form action="{{ url_for('main.download_report') }}" method="GET">
+        <!-- Кнопки генерации отчета -->
+        <div class="report-section d-flex flex-wrap justify-content-between align-items-center mb-4">
+            <button class="btn btn-success mb-2" id="generate-report-button" style="display: none;">Проанализировать данные</button>
+            <form action="{{ url_for('main.download_report') }}" method="GET" class="mb-2">
                 <button class="btn btn-success" id="generate-report-excel-button" style="display: none;" type="submit">Сформировать отчет в MS Excel</button>
             </form>
-
-
         </div>
 
-        <div class="progress" style="margin-top: 10px; display: none;" id="progress-bar-container">
+        <!-- Полоска загрузки с прогрессом -->
+        <div class="progress mb-4" style="display: none;" id="progress-bar-container">
             <div class="progress-bar" id="progress-bar" role="progressbar" style="width: 0%;" aria-valuenow="0"
-                 aria-valuemin="0" aria-valuemax="100">0%
-            </div>
+                 aria-valuemin="0" aria-valuemax="100">0%</div>
         </div>
 
-        <div class="graph-container" style="margin-top: 20px;">
-            {% if metrics %}
-                <center><h2>Метрики</h2></center>
-                <table class="table table-striped table-bordered mx-auto" style="width: 50%;">
-                    <thead>
-                    <tr>
-                        <th class="text-center">Название метрики</th>
-                        <th class="text-center">Значение</th>
+        <!-- Метрики, обернуты в #metrics-wrapper, чтобы удобно удалять перед повторной загрузкой -->
+        {% if metrics %}
+        <div id="metrics-wrapper">
+            <center><h2>Метрики</h2></center>
+            <table class="table table-striped table-bordered mx-auto mb-5" style="width: 50%;">
+                <thead>
+                <tr class="text-center">
+                    <th>Название метрики</th>
+                    <th>Значение</th>
+                </tr>
+                </thead>
+                <tbody>
+                {% for metric_name, metric_data in metrics.items() %}
+                    <tr class="text-center">
+                        <td>{{ metric_data.name_ru }}</td>
+                        <td>
+                            {% if metric_data.value is integer %}
+                                {{ "{:,}".format(metric_data.value).replace(",", " ") }}
+                            {% else %}
+                                {{ "{:,.2f}".format(metric_data.value).replace(",", " ") }}
+                            {% endif %}
+                        </td>
                     </tr>
-                    </thead>
-                    <tbody>
-                        {% for metric_name, metric_data in metrics.items() %}
-                            <tr class="text-center">
-                                <td>{{ metric_data.name_ru }}</td>
-                                <td>
-                                    {% if metric_data.value is integer %}
-                                        {{ "{:,}".format(metric_data.value).replace(",", " ") }}  <!-- Целые-->
-                                    {% else %}
-                                        {{ "{:,.2f}".format(metric_data.value).replace(",", " ") }}  <!-- Дробные -->
-                                    {% endif %}
-                                </td>
-                            </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            {% endif %}
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% endif %}
 
+        <!-- Селектор графиков. Центрирован и оформлен. -->
+        {% if graphs %}
+        <div id="graph-selector-wrapper" class="mb-4" style="text-align: center;">
+            <label for="graph-selector" class="form-label" style="font-weight: bold;">Выберите график:</label>
+            <select class="form-select w-auto mx-auto" id="graph-selector" onchange="updateGraphs()">
+                <option value="all">Показать все</option>
+                {% for title, graph in graphs.items() %}
+                    <option value="{{ title }}">{{ title }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        {% endif %}
 
-            <div class="col-md-3">
-                <select class="form-control" id="graph-selector" style="display: none;" onchange="updateGraphs()">
-                    <option value="all">Показать все</option>
-                    {% for title, graph in graphs.items() %}
-                        <option value="{{ title }}">{{ title }}</option>
-                    {% endfor %}
-                </select>
-            </div>
+        <!-- Блок визуализаций -->
+        <div class="graph-container" style="margin-top: 20px;">
             {% for title, graph in graphs.items() %}
-                <div class="single-graph" data-graph="{{ title }}">
+                <div class="single-graph mb-5" data-graph="{{ title }}">
                     <center><h2>{{ title }}</h2></center>
                     {{ graph|safe }}
                 </div>
             {% endfor %}
-
-
         </div>
     </div>
 
+    <!-- Скрипты -->
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
-    <script>
 
-        {##########---фильтрация---##########}
+    <script>
+        // Логика переключения графиков
         function updateGraphs() {
             const selectedGraph = document.getElementById("graph-selector").value;
             const graphs = document.querySelectorAll(".single-graph");
-
             graphs.forEach(graph => {
                 graph.style.display = (selectedGraph === "all" || graph.dataset.graph === selectedGraph) ? "block" : "none";
             });
         }
 
-        document.addEventListener("DOMContentLoaded", () => {
-            const graphs = document.querySelectorAll(".single-graph");
-            graphs.forEach(graph => graph.style.display = "none");
-            document.querySelector('#graph-selector').dispatchEvent(new Event('change'));
-        });
-        {#####################################}
-
-        {#########################################}
         $(document).ready(function () {
-            // Скрываем кнопку при загрузке страницы
-            $('#upload-button').hide();
+            // Инициализация: показываем все графики
+            $('#graph-selector').val("all").trigger("change");
 
-            // Обработчик изменения для input[type="file"]
+            // Обработка выбора файла
             $('#file').on('change', function () {
-                if (this.files.length > 0) {
-                    $('#upload-button').show();
-                } else {
-                    $('#upload-button').hide();
-                }
-
-                // Сбрасываем сообщения и состояние графиков перед новым выбором файла
+                $('#upload-button').toggle(this.files.length > 0);
                 $('#messages').empty();
-                $('.graph-container').empty();
                 $('#generate-report-button').hide();
                 $('#generate-report-excel-button').hide();
+                // НЕ удаляем графики/метрики здесь — только после успешной загрузки!
             });
 
-            // Обработчик клика на кнопку загрузки
+            // Обработка клика по кнопке "Загрузить файл"
             $('#upload-button').on('click', function () {
-                var file_data = $('#file').prop('files')[0];
-                var form_data = new FormData();
+                const file_data = $('#file').prop('files')[0];
+                const form_data = new FormData();
                 form_data.append('file', file_data);
 
                 $.ajax({
@@ -142,79 +134,56 @@
                     data: form_data,
                     success: function (response) {
                         $('#messages').html('<div class="alert alert-' + (response.status === 'success' ? 'success' : 'danger') + '">' + response.message + '</div>');
-
-                        // Показываем кнопки только при успешной загрузке
                         if (response.status === 'success') {
                             $('#generate-report-button').show();
-                            {#$('#generate-report-excel-button').show();#}
-                        } else {
-                            // Скрываем кнопки, если загрузка была неудачной
-                            $('#generate-report-button').hide();
-                            $('#generate-report-excel-button').hide();
+                            // Только здесь убираем старые графики, метрики и селектор
+                            $('#metrics-wrapper').remove();
+                            $('#graph-selector-wrapper').remove();
+                            $('.graph-container').empty();
                         }
                     },
-                    error: function (xhr) {
+                    error: function () {
                         $('#messages').html('<div class="alert alert-danger">Произошла ошибка при загрузке файла.</div>');
-                        // Скрываем кнопки в случае ошибки
                         $('#generate-report-button').hide();
                         $('#generate-report-excel-button').hide();
                     }
                 });
             });
-        });
-        {#################################################################}
-
-        $(document).ready(function () {
-
-            {##########---сокрытие кнопки загрузить файл---##########}
-            // Скрываем кнопку при загрузке страницы
-            document.getElementById('upload-button').style.display = 'none';
-
-            // Обработчик изменения для input[type="file"]
-            document.getElementById('file').addEventListener('change', function () {
-                // Если файл выбран, показываем кнопку
-                if (this.files.length > 0) {
-                    document.getElementById('upload-button').style.display = 'block';
-                } else {
-                    document.getElementById('upload-button').style.display = 'none'; // Если файл не выбран, скрываем кнопку
-                }
-            });
-            {#########################################################}
-
 
             // Генерация отчета
             $('#generate-report-button').on('click', function () {
-                // Показываем индикатор выполнения
+                $('#messages').empty();
                 $('#progress-bar-container').show();
                 $('#progress-bar').width('0%').text('0%');
 
-                // Подключаемся к SSE для отслеживания прогресса
                 var source = new EventSource('/progress');
-
                 source.onmessage = function (event) {
                     var progress = parseInt(event.data);
                     $('#progress-bar').width(progress + '%').text(progress + '%');
 
                     if (progress === 100) {
-                        source.close(); // Закрываем соединение после завершения
-
-                        // Загружаем метрики и графики
+                        source.close();
                         $.ajax({
                             url: '/generate_report',
                             type: 'POST',
                             success: function (response) {
-                                $('.graph-container').html($(response).find('.graph-container').html());
-                                $('#graph-selector').show();
+                                const parsed = $(response);
 
+                                // Обновляем графики
+                                $('.graph-container').html(parsed.find('.graph-container').html());
 
-                                $('.dropdown-toggle').dropdown();
-                                $('#dropdown-container').show();
+                                // Добавляем метрики перед графиками
+                                const newTableWrapper = parsed.find('#metrics-wrapper');
+                                const newSelector = parsed.find('#graph-selector-wrapper');
+
+                                $('.graph-container').before(newTableWrapper);  // сначала метрики
+                                $('#metrics-wrapper').after(newSelector);       // потом селектор
+
+                                $('#graph-selector').val("all").trigger("change");
                                 $('#progress-bar-container').hide();
-                                $('#dropdown-container').show();
                                 $('#generate-report-excel-button').show();
-
                             },
-                            error: function (xhr, status, error) {
+                            error: function () {
                                 $('#messages').html('<div class="alert alert-danger">Произошла ошибка при формировании отчета.</div>');
                                 $('#generate-report-button').hide();
                                 $('#generate-report-excel-button').hide();
@@ -224,11 +193,9 @@
                     }
                 };
 
-                source.onerror = function (error) {
-                    console.error("SSE error:", error);
+                source.onerror = function () {
                     source.close();
                     $('#messages').html('<div class="alert alert-danger">Ошибка подключения к потоку прогресса.</div>');
-                    // Скрываем кнопки в случае ошибки
                     $('#generate-report-button').hide();
                     $('#generate-report-excel-button').hide();
                     $('#progress-bar-container').hide();

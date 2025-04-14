@@ -154,6 +154,11 @@ def plot_top_products(df: pd.DataFrame,
         legend_title_text = 'Товар'
     )
 
+    if image_format:
+        return pio.to_image(fig, format=image_format)
+    else:
+        return pio.to_html(fig, full_html=False)
+
 
 def plot_sales_by_region(df: pd.DataFrame,
                          threshold: float = 0.05,
@@ -263,6 +268,3 @@ def plot_average_price_per_product(df: pd.DataFrame,
 
 def is_enough_data(df, date_col='ym'):
     return df[date_col].nunique() > 1
-
-
-
