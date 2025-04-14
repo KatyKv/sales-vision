@@ -101,15 +101,18 @@ def register():
 def login():
     if current_user.is_authenticated:
         return redirect(url_for('main.home'))
+
     form = LoginForm()
+
     if form.validate_on_submit():
         user = User.query.filter_by(email=form.email.data).first()
         if user and bcrypt.check_password_hash(user.password, form.password.data):
             login_user(user, remember=form.remember_me.data)
-            return redirect(url_for('main.load_csv'))  # сделать форму загрузки csv
+            return redirect(url_for('main.load_csv'))
         else:
-            print('Введены неверные данные')
-            return render_template('login.html', form=form, title='Login')
+            flash('Неверный email или пароль', 'danger')
+
+    return render_template('login.html', form=form, title='Вход')
 
 
 @main_bp.route('/edit', methods=['GET', 'POST'])
