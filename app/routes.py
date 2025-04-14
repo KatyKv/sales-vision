@@ -109,8 +109,7 @@ def login():
             return redirect(url_for('main.load_csv'))  # сделать форму загрузки csv
         else:
             print('Введены неверные данные')
-            return render_template('login.html', form=form, title='Login')
-
+    return render_template('login.html', form=form, title='Login')
 
 @main_bp.route('/edit', methods=['GET', 'POST'])
 def edit():
