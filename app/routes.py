@@ -4,15 +4,18 @@ import time
 from datetime import datetime
 
 # Сторонние библиотеки
+import io
 import pandas as pd
+import plotly.io as pio
 import xlsxwriter
 from flask import (
     Blueprint, render_template, request, jsonify,
     send_from_directory, current_app, session,
     redirect, url_for, flash, send_file, Response,
-    stream_with_context
+    stream_with_context, send_file
 )
 from flask_login import login_user, logout_user, current_user, login_required
+from flask import stream_with_context
 
 # Внутренние модули
 from app import db, bcrypt
@@ -140,7 +143,23 @@ def account():
 
 @main_bp.route('/load_csv', methods=['GET', 'POST'])
 def load_csv():
-    return render_template('load_csv.html')
+    # Проверяем, есть ли сохраненный filename в сессии
+    filename = session.get('saved_filename')
+    graphs = {}  # Инициализируем graphs по умолчанию
+    metrics = {}  # Инициализируем metrics по умолчанию
+
+    if filename:
+        # Если есть имя файла, обрабатываем его и получаем графики
+        try:
+            metrics, graphs = generate_report(filename)
+        except Exception as e:
+            print(f"Ошибка при создании отчета: {e}")
+            # Обрабатываем ошибку, например, показываем сообщение пользователю
+            # Можно вернуть пустые графики или сообщение об ошибке
+            graphs = {}
+            metrics = {}
+
+    return render_template('load_csv.html', graphs=graphs, metrics=metrics)
 
 
 @main_bp.route('/generate_report', methods=['POST'])
@@ -172,7 +191,6 @@ def generate_report():
     }
     return render_template('load_csv.html', graphs=graphs, metrics=metrics)
 
-from flask import stream_with_context
 
 @main_bp.route('/progress')
 def progress():
@@ -185,13 +203,67 @@ def progress():
 @main_bp.route('/download_report')
 def download_report():
     try:
-        filename = request.args.get('filename')
+        filename = session.get('saved_filename')
         if not filename:
-            return "Не указано имя файла", 400
-        file_path = os.path.join(RESULT_FOLDER, filename)
-        if not os.path.exists(file_path):
-            return "Файл отчета не найден", 404
-        return send_file(file_path, as_attachment=True)
+            return "Файл не найден. Сначала загрузите CSV.", 400
+
+        data_file_path = os.path.join(current_app.config['UPLOAD_FOLDER'], filename)
+        df = load_data(data_file_path)
+        metrics = calculate_metrics(df)
+        df_by_date = sales_by_date(df)
+        df_by_month = sales_by_month(df)
+        df_by_region = sales_by_region(df)
+        df_top_revenue = top_products(df, by='revenue')
+        df_top_quantity = top_products(df, by='quantity')
+        df_avg_price = average_price_per_product(df)
+
+        # Изменим вызов функций plot_... чтобы они возвращали bytes
+        # graphics = {
+        #     "Выручка по месяцам": plot_sales_trend(df_by_month, image_format="png"),
+        #     "Выручка по дням": plot_sales_trend(df_by_date, 'day', image_format="png"),
+        #     "Топ продуктов по выручке": plot_top_products(df_top_revenue, top=10, image_format="png"),
+        #     "Топ продуктов по количеству": plot_top_products(df_top_quantity, 'quantity', top=10, image_format="png"),
+        #     "Выручка по регионам": plot_sales_by_region(df_by_region, image_format="png"),
+        #     "Средняя цена по товарам": plot_average_price_per_product(df_avg_price, top=10, image_format="png")
+        # }
+
+        # Создаем Excel-файл в памяти
+        excel_file = io.BytesIO()
+        workbook = xlsxwriter.Workbook(excel_file)
+
+        # Создаем лист "metrics"
+        metrics_sheet = workbook.add_worksheet('metrics')
+        bold = workbook.add_format({'bold': True})
+
+        # Записываем заголовки из ключей словаря metrics
+        metrics_keys = list(metrics.keys())
+        for col, key in enumerate(metrics_keys):
+            metrics_sheet.write(0, col, key, bold)
+
+        # Записываем значения метрик
+        for col, key in enumerate(metrics_keys):
+            if isinstance(metrics[key], dict):
+                metrics_sheet.write(1, col, metrics[key].get('value', 'N/A'))
+            else:
+                metrics_sheet.write(1, col, metrics[key])
+
+        # Создаем листы для графиков
+        # for sheet_name, graph_bytes in graphics.items():
+        #     worksheet = workbook.add_worksheet(sheet_name)
+        #     # Вставляем графики
+        #     imgdata = io.BytesIO(graph_bytes)
+        #     worksheet.insert_image('A1', sheet_name, {'image_data': imgdata})
+
+        workbook.close()
+        excel_file.seek(0)
+
+        # Отправляем файл пользователю
+        return send_file(
+            excel_file,
+            mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            download_name='report.xlsx',
+            as_attachment=True
+        )
     except Exception as e:
         return f"Ошибка скачивания: {str(e)}", 500
 

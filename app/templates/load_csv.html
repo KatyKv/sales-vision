@@ -24,12 +24,18 @@
             </div>
         </div>
 
-        <div class="report-section" style="margin-top: 20px;">
-            <button class="btn btn-success" id="generate-report-button">Произвести анализ данных</button>
-            <div class="progress" style="margin-top: 10px; display: none;" id="progress-bar-container">
-                <div class="progress-bar" id="progress-bar" role="progressbar" style="width: 0%;" aria-valuenow="0"
-                     aria-valuemin="0" aria-valuemax="100">0%
-                </div>
+        <div class="report-section" style="margin-top: 20px; display: flex; justify-content: space-between; align-items: center;">
+            <button class="btn btn-success" id="generate-report-button" style="display: none;">Произвести анализ данных</button>
+            <form action="{{ url_for('main.download_report') }}" method="GET">
+                <button class="btn btn-success" id="generate-report-excel-button" style="display: none;" type="submit">Сформировать отчет в MS Excel</button>
+            </form>
+
+
+        </div>
+
+        <div class="progress" style="margin-top: 10px; display: none;" id="progress-bar-container">
+            <div class="progress-bar" id="progress-bar" role="progressbar" style="width: 0%;" aria-valuenow="0"
+                 aria-valuemin="0" aria-valuemax="100">0%
             </div>
         </div>
 
@@ -60,29 +66,23 @@
                 </table>
             {% endif %}
 
-            {% if graphs %}
-                <div class="dropdown" style="margin-top: 20px; display: none;" id="dropdown-container">
-                    <button class="btn btn-secondary dropdown-toggle" type="button" id="dropdownMenuButton"
-                            data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                        Выберите график
-                    </button>
-                    <div class="dropdown-menu" aria-labelledby="dropdownMenuButton">
-                        <a class="dropdown-item" href="#" data-graph="all">Показать все</a>
-                        {% for title, graph in graphs.items() %}
-                            <a class="dropdown-item" href="#" data-graph="{{ title }}">{{ title }}</a>
-                        {% endfor %}
-                    </div>
-                </div>
 
-                <div id="all-graphs">
+            <div class="col-md-3">
+                <select class="form-control" id="graph-selector" style="display: none;" onchange="updateGraphs()">
+                    <option value="all">Показать все</option>
                     {% for title, graph in graphs.items() %}
-                        <div class="single-graph" data-graph="{{ title }}">
-                            <center><h2>{{ title }}</h2></center>
-                            {{ graph|safe }}
-                        </div>
+                        <option value="{{ title }}">{{ title }}</option>
                     {% endfor %}
+                </select>
+            </div>
+            {% for title, graph in graphs.items() %}
+                <div class="single-graph" data-graph="{{ title }}">
+                    <center><h2>{{ title }}</h2></center>
+                    {{ graph|safe }}
                 </div>
-            {% endif %}
+            {% endfor %}
+
+
         </div>
     </div>
 
@@ -90,42 +90,49 @@
     <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
     <script>
 
-        $('#upload-button').on('click', function () {
-            // Сброс сообщений и состояния перед загрузкой нового файла
-            $('#messages').empty();
-            $('.graph-container').empty();
-            $('#dropdown-container').hide();
+        {##########---фильтрация---##########}
+        function updateGraphs() {
+            const selectedGraph = document.getElementById("graph-selector").value;
+            const graphs = document.querySelectorAll(".single-graph");
 
-            var file_data = $('#file').prop('files')[0];
-            var form_data = new FormData();
-            form_data.append('file', file_data);
-
-            $.ajax({
-                url: '/upload',
-                type: 'POST',
-                dataType: 'json',
-                contentType: false,
-                processData: false,
-                data: form_data,
-                success: function (response) {
-                    $('#messages').html('<div class="alert alert-' + (response.status === 'success' ? 'success' : 'danger') + '">' + response.message + '</div>');
-                },
-                error: function (xhr) {
-                    $('#messages').html('<div class="alert alert-danger">Произошла ошибка при загрузке файла.</div>');
-                }
+            graphs.forEach(graph => {
+                graph.style.display = (selectedGraph === "all" || graph.dataset.graph === selectedGraph) ? "block" : "none";
             });
+        }
+
+        document.addEventListener("DOMContentLoaded", () => {
+            const graphs = document.querySelectorAll(".single-graph");
+            graphs.forEach(graph => graph.style.display = "none");
+            document.querySelector('#graph-selector').dispatchEvent(new Event('change'));
         });
+        {#####################################}
 
+        {#########################################}
         $(document).ready(function () {
-            // Загрузка файла
-            $('#upload-button').on('click', function () {
-                // Очистка данных перед загрузкой нового файла
-                $('.graph-container').empty();
-                $('#dropdown-container').hide();
+            // Скрываем кнопку при загрузке страницы
+            $('#upload-button').hide();
 
+            // Обработчик изменения для input[type="file"]
+            $('#file').on('change', function () {
+                if (this.files.length > 0) {
+                    $('#upload-button').show();
+                } else {
+                    $('#upload-button').hide();
+                }
+
+                // Сбрасываем сообщения и состояние графиков перед новым выбором файла
+                $('#messages').empty();
+                $('.graph-container').empty();
+                $('#generate-report-button').hide();
+                $('#generate-report-excel-button').hide();
+            });
+
+            // Обработчик клика на кнопку загрузки
+            $('#upload-button').on('click', function () {
                 var file_data = $('#file').prop('files')[0];
                 var form_data = new FormData();
                 form_data.append('file', file_data);
+
                 $.ajax({
                     url: '/upload',
                     type: 'POST',
@@ -135,12 +142,45 @@
                     data: form_data,
                     success: function (response) {
                         $('#messages').html('<div class="alert alert-' + (response.status === 'success' ? 'success' : 'danger') + '">' + response.message + '</div>');
+
+                        // Показываем кнопки только при успешной загрузке
+                        if (response.status === 'success') {
+                            $('#generate-report-button').show();
+                            {#$('#generate-report-excel-button').show();#}
+                        } else {
+                            // Скрываем кнопки, если загрузка была неудачной
+                            $('#generate-report-button').hide();
+                            $('#generate-report-excel-button').hide();
+                        }
                     },
-                    error: function (xhr, status, error) {
+                    error: function (xhr) {
                         $('#messages').html('<div class="alert alert-danger">Произошла ошибка при загрузке файла.</div>');
+                        // Скрываем кнопки в случае ошибки
+                        $('#generate-report-button').hide();
+                        $('#generate-report-excel-button').hide();
                     }
                 });
             });
+        });
+        {#################################################################}
+
+        $(document).ready(function () {
+
+            {##########---сокрытие кнопки загрузить файл---##########}
+            // Скрываем кнопку при загрузке страницы
+            document.getElementById('upload-button').style.display = 'none';
+
+            // Обработчик изменения для input[type="file"]
+            document.getElementById('file').addEventListener('change', function () {
+                // Если файл выбран, показываем кнопку
+                if (this.files.length > 0) {
+                    document.getElementById('upload-button').style.display = 'block';
+                } else {
+                    document.getElementById('upload-button').style.display = 'none'; // Если файл не выбран, скрываем кнопку
+                }
+            });
+            {#########################################################}
+
 
             // Генерация отчета
             $('#generate-report-button').on('click', function () {
@@ -158,18 +198,26 @@
                     if (progress === 100) {
                         source.close(); // Закрываем соединение после завершения
 
-                        // Загружаем отчет после завершения анализа
+                        // Загружаем метрики и графики
                         $.ajax({
                             url: '/generate_report',
                             type: 'POST',
                             success: function (response) {
                                 $('.graph-container').html($(response).find('.graph-container').html());
+                                $('#graph-selector').show();
+
+
                                 $('.dropdown-toggle').dropdown();
                                 $('#dropdown-container').show();
                                 $('#progress-bar-container').hide();
+                                $('#dropdown-container').show();
+                                $('#generate-report-excel-button').show();
+
                             },
                             error: function (xhr, status, error) {
                                 $('#messages').html('<div class="alert alert-danger">Произошла ошибка при формировании отчета.</div>');
+                                $('#generate-report-button').hide();
+                                $('#generate-report-excel-button').hide();
                                 $('#progress-bar-container').hide();
                             }
                         });
@@ -180,25 +228,12 @@
                     console.error("SSE error:", error);
                     source.close();
                     $('#messages').html('<div class="alert alert-danger">Ошибка подключения к потоку прогресса.</div>');
+                    // Скрываем кнопки в случае ошибки
+                    $('#generate-report-button').hide();
+                    $('#generate-report-excel-button').hide();
                     $('#progress-bar-container').hide();
                 };
             });
-
-            // Обработчик выпадающего списка
-            $(document).on('click', '.dropdown-item', function (e) {
-                e.preventDefault();
-                var selectedGraph = $(this).data('graph');
-
-                if (selectedGraph === 'all') {
-                    $('.single-graph').show();
-                } else {
-                    $('.single-graph').hide();
-                    $('.single-graph[data-graph="' + selectedGraph + '"]').show();
-                }
-            });
-
-            // Инициализация Bootstrap dropdown
-            $('.dropdown-toggle').dropdown();
         });
     </script>
 {% endblock %}

@@ -30,15 +30,17 @@
 - Сохранить в файл для статичной визуализации
 """
 
-from typing import Literal
+from typing import Union, Literal
 
 import numpy as np
 import pandas as pd
 import plotly.express as px
 import plotly.io as pio
 
+
 def plot_sales_trend(df: pd.DataFrame,
-                     period: Literal['day', 'month']='month') -> str:
+                     period: Literal['day', 'month'] = 'month',
+                     image_format: str = None) -> Union[str, bytes]:
     """Строит линейный график динамики выручки за период.
     Принимает УЖЕ АГРЕГИРОВАННЫЕ данные (либо по дням, либо по месяцам).
 
@@ -97,12 +99,17 @@ def plot_sales_trend(df: pd.DataFrame,
         fig.update_traces(
             hovertemplate='<b>Дата</b>: %{x|%Y-%m-%d}<br><b>Выручка</b>: %{y:,}<extra></extra>'.replace(',', ' ')
         )
-    return pio.to_html(fig, full_html=False)
+
+    if image_format:
+        return pio.to_image(fig, format=image_format)
+    else:
+        return pio.to_html(fig, full_html=False)
 
 
 def plot_top_products(df: pd.DataFrame,
-                      by: Literal['revenue', 'quantity']='revenue',
-                      top: int=10) -> str:
+                      by: Literal['revenue', 'quantity'] = 'revenue',
+                      top: int = 10,
+                      image_format: str = None) -> Union[str, bytes]:
     """Визуализирует топ товаров в виде горизонтальной гистограммы.
     Args:
         df: DataFrame с товарами в индексе и колонками:
@@ -146,10 +153,11 @@ def plot_top_products(df: pd.DataFrame,
         yaxis=dict(categoryorder='total ascending'),
         legend_title_text = 'Товар'
     )
-    return pio.to_html(fig, full_html=False)
 
 
-def plot_sales_by_region(df: pd.DataFrame) -> str:
+def plot_sales_by_region(df: pd.DataFrame,
+                         threshold: float = 0.05,
+                         image_format: str = None) -> Union[str, bytes]:
     """Строит круговую диаграмму с группировкой мелких регионов в 'Другие'.
 
     Args:
@@ -182,10 +190,15 @@ def plot_sales_by_region(df: pd.DataFrame) -> str:
         uniformtext_mode='hide'
     )
 
-    return pio.to_html(fig, full_html=False)
+    if image_format:
+        return pio.to_image(fig, format=image_format)
+    else:
+        return pio.to_html(fig, full_html=False)
 
 
-def plot_average_price_per_product(df: pd.DataFrame, top: int = 10) -> str:
+def plot_average_price_per_product(df: pd.DataFrame,
+                                   top: int = 10,
+                                   image_format: str = None) -> Union[str, bytes]:
     """Строит барчарт по средней цене товаров.
 
     Args:
@@ -242,7 +255,11 @@ def plot_average_price_per_product(df: pd.DataFrame, top: int = 10) -> str:
         separators=', '
     )
 
-    return pio.to_html(fig, full_html=False)
+    if image_format:
+        return pio.to_image(fig, format=image_format)
+    else:
+        return pio.to_html(fig, full_html=False)
+
 
 def is_enough_data(df, date_col='ym'):
     return df[date_col].nunique() > 1
