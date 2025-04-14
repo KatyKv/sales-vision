@@ -1,21 +1,17 @@
 import os
 import logging
 import time
-from datetime import datetime
 
 # Сторонние библиотеки
 import io
-import pandas as pd
-import plotly.io as pio
 import xlsxwriter
 from flask import (
     Blueprint, render_template, request, jsonify,
-    send_from_directory, current_app, session,
-    redirect, url_for, flash, send_file, Response,
+    current_app, session,
+    redirect, url_for, flash, Response,
     stream_with_context, send_file
 )
 from flask_login import login_user, logout_user, current_user, login_required
-from flask import stream_with_context
 
 # Внутренние модули
 from app import db, bcrypt
@@ -43,10 +39,6 @@ logging.basicConfig(
         logging.StreamHandler()  # лог в консоль
     ]
 )
-
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-RESULT_FOLDER = os.path.join(BASE_DIR, 'results')
-os.makedirs(RESULT_FOLDER, exist_ok=True)
 
 
 @main_bp.route('/upload', methods=['POST'])
@@ -284,7 +276,7 @@ def df_to_html(df, limit=10):
     </div>
     """
 
-# ТЕСТОВАЯ СТРАНИЦА ВИЗУАЛИЗАЦИИ! УДАЛИТЬ В ФИНАЛЕ.
+# Тестовая страница визуализации. Просто вывод всех графиков.
 @main_bp.route("/visualizations")
 def visualizations():
     filename = session.get('saved_filename')
